@@ -29,4 +29,3 @@ Centralian Skywatch brings today's space picture, launch countdowns, and live IS
    flutter run
    ```
 
-`.env` is gitignored. The key ships inside the app, so it is not truly secret.
