@@ -1,11 +1,11 @@
 {
-    "name": "centralian_skywatch",
-    "short_name": "centralian_skywatch",
+    "name": "Centralian Skywatch",
+    "short_name": "Centralian Skywatch",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#3F51B5",
+    "theme_color": "#3F51B5",
+    "description": "Centralian Skywatch brings today's space picture, launch countdowns and live ISS tracking together in one Flutter app.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
