@@ -7,13 +7,25 @@ environment:
   sdk: ^3.12.2
 
 dependencies:
+  cached_network_image: ^3.4.1
+  cupertino_icons: ^1.0.8
   flutter:
     sdk: flutter
+  flutter_dotenv: ^6.0.1
+  flutter_map: ^8.3.2
+  http: ^1.6.0
+  latlong2: ^0.10.1
+  provider: ^6.1.5+1
+  shared_preferences: ^2.5.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.8
 
 flutter:
   uses-material-design: true
+  assets:
+    - .env

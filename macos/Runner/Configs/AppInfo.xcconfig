@@ -8,7 +8,7 @@
 PRODUCT_NAME = centralian_skywatch
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.centralianSkywatch
+PRODUCT_BUNDLE_IDENTIFIER = com.centralianskywatch.app
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 com.centralianskywatch.app. All rights reserved.
