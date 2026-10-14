@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import 'routes/app_router.dart';
+import 'routes/app_routes.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -16,9 +19,9 @@ class CentralianSkywatchApp extends StatelessWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
-      home: const Scaffold(
-        body: Center(child: Text('Centralian Skywatch')),
-      ),
+      initialRoute: AppRoutes.home,
+      onGenerateRoute: buildRoute,
+      onGenerateInitialRoutes: buildInitialRoutes,
     );
   }
 }
