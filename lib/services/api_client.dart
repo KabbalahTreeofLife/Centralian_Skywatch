@@ -24,7 +24,7 @@ class ApiClient {
   /// How long a single request may take before it is abandoned.
   final Duration timeout;
 
-  /// Total attempts for a rate-limited request, including the first one.
+  /// Total attempts for a retryable failure, including the first one.
   final int maxAttempts;
 
   /// Delay before the first retry; it doubles on each further attempt.
@@ -34,9 +34,24 @@ class ApiClient {
   ///
   /// Throws an [ApiException] subtype for every failure mode the app needs to
   /// tell apart: no connection, timeout, rate limit, server error, bad payload.
+  ///
+  /// Rate limits, server errors and timeouts are retried, because all three are
+  /// transient: NASA's APOD feed in particular alternates between a 500, a slow
+  /// response and a good one, so a single attempt fails often enough to make
+  /// the user press Retry repeatedly.
   Future<Map<String, dynamic>> getJson(Uri uri) async {
     for (int attempt = 1; ; attempt++) {
-      final http.Response response = await _send(uri);
+      final http.Response response;
+      try {
+        response = await _send(uri);
+      } on ApiTimeoutException {
+        // A timeout is worth another try, but only while attempts remain.
+        if (attempt < maxAttempts) {
+          await Future<void>.delayed(_backoffFor(attempt));
+          continue;
+        }
+        rethrow;
+      }
 
       if (response.statusCode == 429) {
         final Duration? retryAfter = _parseRetryAfter(response);
@@ -45,6 +60,12 @@ class ApiClient {
           continue;
         }
         throw RateLimitException(retryAfter: retryAfter);
+      }
+
+      if (_isRetryableServerError(response.statusCode) &&
+          attempt < maxAttempts) {
+        await Future<void>.delayed(_backoffFor(attempt));
+        continue;
       }
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -57,6 +78,12 @@ class ApiClient {
       return _decode(response.body, response.statusCode);
     }
   }
+
+  /// Whether a status is worth trying again.
+  ///
+  /// Only 5xx: a 4xx means the request itself is wrong, so repeating it would
+  /// fail the same way and waste the caller's time.
+  static bool _isRetryableServerError(int statusCode) => statusCode >= 500;
 
   /// Releases the underlying connection pool.
   void close() => _client.close();

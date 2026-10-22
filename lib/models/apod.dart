@@ -55,11 +55,31 @@ class Apod {
     return candidate.isEmpty ? null : candidate;
   }
 
-  /// The title to show, falling back to the date when the feed sends the site
-  /// name instead of a real title.
+  /// The title to show.
+  ///
+  /// When the feed sends the site name instead of a real title, the real title
+  /// is recovered from the explanation, which reliably opens with it. The date
+  /// is only a last resort, so a broken payload never shows a bare date where a
+  /// title belongs.
   String get displayTitle {
-    if (isPlaceholder && date.isNotEmpty) return date;
-    return title;
+    if (!isPlaceholder) return title;
+    return _titleFromExplanation() ?? (date.isNotEmpty ? date : title);
+  }
+
+  /// Recovers the entry's title from the opening of [explanation].
+  ///
+  /// The feed writes the explanation as `<title>? <body>`, for example
+  /// `Star light, star bright: is there a green star out tonight? Other than
+  /// the Sun...`. The text before the first question mark is the title. Returns
+  /// null when the explanation does not have that shape.
+  String? _titleFromExplanation() {
+    final int mark = explanation.indexOf('?');
+    if (mark <= 0) return null;
+    final String candidate = explanation.substring(0, mark).trim();
+    // A title is a short phrase, not a paragraph. Guard against an explanation
+    // that happens to contain a question mark far into the text.
+    if (candidate.isEmpty || candidate.length > 120) return null;
+    return candidate;
   }
 
   /// True when [value] points at a NASA site asset rather than an APOD image.
