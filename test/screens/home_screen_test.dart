@@ -33,6 +33,13 @@ const String _noImageApodJson =
     '"permalink":"https://science.nasa.gov/image-article/apod-2026-october-20/",'
     '"explanation":"The feed sent no image for this entry."}]';
 
+/// An entry whose description has a paragraph break and a teaser.
+const String _structuredApodJson =
+    '[{"date":"2026-10-19","title":"A Structured Entry","media_type":"image",'
+    '"hdurl":"https://example.test/structured.jpg",'
+    '"explanation":"<strong>Explanation:</strong> The first part.<br>'
+    'The second part.<br><br>Tomorrow\'s picture: eye in the sky"}]';
+
 /// Pumps the Home screen over a client that answers APOD requests with [body].
 Future<FavoritesProvider> pumpHome(
   WidgetTester tester, {
@@ -128,6 +135,37 @@ void main() {
 
     expect(find.textContaining('<strong>'), findsNothing);
     expect(find.textContaining('A picture of something far away'), findsWidgets);
+  });
+
+  testWidgets('the Explanation label is not shown', (
+    WidgetTester tester,
+  ) async {
+    await pumpHome(tester, body: _imageApodJson);
+
+    expect(find.textContaining('Explanation:'), findsNothing);
+  });
+
+  testWidgets('paragraphs are rendered separately and justified', (
+    WidgetTester tester,
+  ) async {
+    await pumpHome(tester, body: _structuredApodJson);
+
+    expect(find.text('The first part.'), findsOneWidget);
+    expect(find.text('The second part.'), findsOneWidget);
+
+    // The description is justified so the right edge is even.
+    final Text first = tester.widget<Text>(find.text('The first part.'));
+    expect(first.textAlign, TextAlign.justify);
+  });
+
+  testWidgets('the tomorrow teaser is shown apart from the description', (
+    WidgetTester tester,
+  ) async {
+    await pumpHome(tester, body: _structuredApodJson);
+
+    expect(find.text("Tomorrow's picture: eye in the sky"), findsOneWidget);
+    // It must not be run into the description.
+    expect(find.textContaining('The second part. Tomorrow'), findsNothing);
   });
 
   testWidgets('a failed load shows the error state and Retry refetches', (

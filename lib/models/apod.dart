@@ -9,6 +9,8 @@ class Apod {
     required this.title,
     required this.explanation,
     required this.mediaType,
+    this.paragraphs = const <String>[],
+    this.tomorrowTeaser,
     this.date = '',
     this.imageUrl,
     this.permalink,
@@ -19,8 +21,20 @@ class Apod {
   /// The entry's real title, e.g. `The First Green Star, WD J1330+6435`.
   final String title;
 
-  /// The description, with HTML removed.
+  /// The description, with HTML removed and the `Explanation:` label stripped.
   final String explanation;
+
+  /// The description split into paragraphs.
+  ///
+  /// The feed marks its breaks with `<br>` tags, so this keeps the author's
+  /// structure instead of collapsing it into one block.
+  final List<String> paragraphs;
+
+  /// The feed's trailing `Tomorrow's picture: ...` teaser, when it sends one.
+  ///
+  /// It is a note about the next entry rather than part of this one, so it is
+  /// kept out of [paragraphs] and shown separately.
+  final String? tomorrowTeaser;
 
   /// Either `image` or `video`.
   final String mediaType;
@@ -53,16 +67,41 @@ class Apod {
   /// Whether there is a picture to render.
   bool get hasImage => imageUrl != null;
 
-  factory Apod.fromJson(Map<String, dynamic> json) => Apod(
-    title: readString(json['title'], fallback: 'Astronomy Picture of the Day'),
-    explanation: stripHtml(json['explanation']),
-    mediaType: readString(json['media_type'], fallback: 'image'),
-    date: readString(json['date']),
-    imageUrl: sizedImageUrl(readStringOrNull(json['hdurl'])),
-    permalink: readStringOrNull(json['permalink']),
-    credit: readStringOrNull(stripHtml(json['credit'])),
-    alt: readStringOrNull(stripHtml(json['alt'])),
-  );
+  factory Apod.fromJson(Map<String, dynamic> json) {
+    final List<String> parts = splitHtmlParagraphs(json['explanation'])
+        .map(stripExplanationLabel)
+        .where((String part) => part.isNotEmpty)
+        .toList(growable: false);
+
+    // The feed ends the explanation with a note about the next entry. It is not
+    // part of this one, so it is pulled out and shown on its own.
+    final String? teaser = _teaserFrom(parts);
+    final List<String> paragraphs = teaser == null
+        ? parts
+        : parts.sublist(0, parts.length - 1);
+
+    return Apod(
+      title: readString(json['title'], fallback: 'Astronomy Picture of the Day'),
+      explanation: paragraphs.join('\n\n'),
+      paragraphs: paragraphs,
+      tomorrowTeaser: teaser,
+      mediaType: readString(json['media_type'], fallback: 'image'),
+      date: readString(json['date']),
+      imageUrl: sizedImageUrl(readStringOrNull(json['hdurl'])),
+      permalink: readStringOrNull(json['permalink']),
+      credit: readStringOrNull(stripHtml(json['credit'])),
+      alt: readStringOrNull(stripHtml(json['alt'])),
+    );
+  }
+
+  /// Returns the trailing `Tomorrow's picture:` note, or null when absent.
+  static String? _teaserFrom(List<String> parts) {
+    if (parts.isEmpty) return null;
+
+    final String last = parts.last;
+    final bool isTeaser = last.toLowerCase().startsWith("tomorrow's picture");
+    return isTeaser ? last : null;
+  }
 }
 
 /// The longest edge to request from NASA's image service.
