@@ -59,6 +59,54 @@ void main() {
       expect(apod.explanation, contains('green star'));
     });
 
+    test('removes the Explanation label', () {
+      // Every entry opens with <strong>Explanation:</strong>, which is a label
+      // rather than prose.
+      final Apod apod = Apod.fromJson(
+        jsonDecode(_sampleJson) as Map<String, dynamic>,
+      );
+
+      expect(apod.explanation, isNot(startsWith('Explanation')));
+      expect(apod.explanation, startsWith('Star light'));
+    });
+
+    test('splits the description into paragraphs on br tags', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'title': 'Two paragraphs',
+        'media_type': 'image',
+        'explanation':
+            '<strong>Explanation:</strong> First part.<br>Second part.',
+      });
+
+      expect(apod.paragraphs, <String>['First part.', 'Second part.']);
+      expect(apod.explanation, 'First part.\n\nSecond part.');
+    });
+
+    test('pulls the tomorrow teaser out of the description', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'title': 'With a teaser',
+        'media_type': 'image',
+        'explanation':
+            '<strong>Explanation:</strong> The description.<br><br>'
+            "Tomorrow's picture: eye in the sky",
+      });
+
+      expect(apod.tomorrowTeaser, "Tomorrow's picture: eye in the sky");
+      expect(apod.paragraphs, <String>['The description.']);
+      expect(apod.explanation, isNot(contains('Tomorrow')));
+    });
+
+    test('has no teaser when the feed sends none', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'title': 'No teaser',
+        'media_type': 'image',
+        'explanation': '<strong>Explanation:</strong> Just the description.',
+      });
+
+      expect(apod.tomorrowTeaser, isNull);
+      expect(apod.paragraphs, <String>['Just the description.']);
+    });
+
     test('strips HTML from the credit', () {
       final Apod apod = Apod.fromJson(
         jsonDecode(_sampleJson) as Map<String, dynamic>,

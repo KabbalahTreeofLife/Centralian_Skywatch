@@ -153,7 +153,7 @@ class _ApodView extends StatelessWidget {
               const SizedBox(height: 16),
               _FavoriteButton(apod: apod),
               const SizedBox(height: 20),
-              Text(apod.explanation, style: theme.textTheme.bodyMedium),
+              _Explanation(apod: apod),
             ],
           ),
         ),
@@ -167,6 +167,86 @@ class _ApodView extends StatelessWidget {
     final String? credit = apod.credit;
     if (credit == null || credit.isEmpty) return date;
     return '$date  ·  $credit';
+  }
+}
+
+/// The description, laid out for reading.
+///
+/// The feed sends one long run of prose, so the text is justified and given
+/// generous line height. Paragraph breaks are kept, and the trailing note about
+/// the next entry is shown separately rather than run into the description.
+class _Explanation extends StatelessWidget {
+  const _Explanation({required this.apod});
+
+  final Apod apod;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final TextStyle? body = theme.textTheme.bodyMedium?.copyWith(
+      height: 1.6,
+      letterSpacing: 0.1,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        for (final String paragraph in apod.paragraphs) ...<Widget>[
+          Text(
+            paragraph,
+            style: body,
+            textAlign: TextAlign.justify,
+          ),
+          const SizedBox(height: 14),
+        ],
+        if (apod.tomorrowTeaser case final String teaser)
+          _TomorrowTeaser(text: teaser),
+      ],
+    );
+  }
+}
+
+/// The feed's note about the next entry.
+///
+/// It is not part of today's description, so it is set apart in a tinted box
+/// rather than appended to the prose.
+class _TomorrowTeaser extends StatelessWidget {
+  const _TomorrowTeaser({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(
+            Icons.arrow_forward,
+            size: 18,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -85,3 +85,30 @@ String stripHtml(Object? value) {
   // Collapse the whitespace the tag removal leaves behind.
   return decoded.replaceAll(RegExp(r'\s+'), ' ').trim();
 }
+
+/// Splits an HTML field into paragraphs on its `<br>` tags.
+///
+/// The APOD explanation is one long run of prose with `<br>` tags marking the
+/// breaks, so collapsing it to a single line produces a wall of text. Each
+/// segment is stripped and trimmed, and empty ones are dropped.
+List<String> splitHtmlParagraphs(Object? value) {
+  final String raw = readString(value);
+  if (raw.isEmpty) return const <String>[];
+
+  return raw
+      .split(RegExp(r'<br\s*/?>', caseSensitive: false))
+      .map(stripHtml)
+      .where((String part) => part.isNotEmpty)
+      .toList(growable: false);
+}
+
+/// Removes a leading `Explanation:` label from a paragraph.
+///
+/// Every entry in the feed opens with `<strong>Explanation:</strong>`, which is
+/// a label rather than prose. Showing it makes the text read as if it were
+/// quoting a field name.
+String stripExplanationLabel(String text) {
+  return text
+      .replaceFirst(RegExp(r'^\s*Explanation\s*:\s*', caseSensitive: false), '')
+      .trim();
+}
