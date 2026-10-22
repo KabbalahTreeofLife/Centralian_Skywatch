@@ -67,16 +67,51 @@ void main() {
       expect(provider.calls, 1);
     });
 
-    test('a failed load is not retried automatically', () async {
+    test('a failure does not trigger an automatic retry loop', () async {
+      // One call, one attempt. The provider must not spin on its own; a retry
+      // only happens when something calls load() again.
       final _FakeProvider provider = _FakeProvider(
         () async => throw const ApiTimeoutException(),
       );
 
       await provider.load();
-      await provider.load();
 
       expect(provider.calls, 1);
       expect(provider.status, LoadStatus.error);
+    });
+
+    test('a later load retries after a failure', () async {
+      // The first attempt fails, as it does on a cold start with no network.
+      // A plain load() afterwards must try again, otherwise the app is stuck on
+      // the error screen until the user finds the Retry button.
+      bool fail = true;
+      final _FakeProvider provider = _FakeProvider(() async {
+        if (fail) throw const NoInternetException();
+        return 'value';
+      });
+
+      await provider.load();
+      expect(provider.status, LoadStatus.error);
+
+      fail = false;
+      await provider.load();
+
+      expect(provider.calls, 2);
+      expect(provider.status, LoadStatus.success);
+      expect(provider.data, 'value');
+    });
+
+    test('a successful load is still not refetched', () async {
+      // The caching guarantee must survive the retry fix: once a load has
+      // succeeded, plain load() calls stay cheap.
+      final _FakeProvider provider = _FakeProvider(() async => 'value');
+
+      await provider.load();
+      await provider.load();
+      await provider.load();
+
+      expect(provider.calls, 1);
+      expect(provider.status, LoadStatus.success);
     });
 
     test('force reloads and replaces the data', () async {
