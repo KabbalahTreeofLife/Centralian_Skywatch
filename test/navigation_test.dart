@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -125,10 +127,74 @@ void main() {
   testWidgets('tapping a launch pushes Launch Detail with its argument', (
     WidgetTester tester,
   ) async {
-    await pumpAt(tester, AppRoutes.launches);
+    // This test needs a real launch to tap, so it uses its own client rather
+    // than the always-failing one the other tests rely on.
+    final ApiClient client = ApiClient(
+      client: MockClient((http.Request request) async {
+        if (request.url.path.contains('/launch/upcoming')) {
+          return http.Response(
+            jsonEncode(<String, dynamic>{
+              'results': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'id': 'nav-launch',
+                  'name': 'Falcon 9 Block 5 | Starlink Group',
+                  'net': DateTime.now()
+                      .toUtc()
+                      .add(const Duration(hours: 2))
+                      .toIso8601String(),
+                  'status': <String, dynamic>{'name': 'Go for Launch'},
+                  'lsp_name': 'SpaceX',
+                  'mission_type': 'Communications',
+                  'pad': 'SLC-4E',
+                  'location': 'Vandenberg SFB, CA, USA',
+                },
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response('', 500);
+      }),
+      backoffBase: Duration.zero,
+    );
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<ApodProvider>(
+            create: (_) => ApodProvider(
+              service: ApodService(apiKey: 'TEST', client: client),
+            ),
+          ),
+          ChangeNotifierProvider<LaunchProvider>(
+            create: (_) =>
+                LaunchProvider(service: LaunchService(client: client)),
+          ),
+          ChangeNotifierProvider<IssProvider>(
+            create: (_) => IssProvider(service: IssService(client: client)),
+          ),
+          ChangeNotifierProvider<FavoritesProvider>(
+            create: (_) => FavoritesProvider()..load(),
+          ),
+        ],
+        child: MaterialApp(
+          key: const ValueKey<String>('nav-launch'),
+          initialRoute: AppRoutes.launches,
+          onGenerateRoute: buildRoute,
+          onGenerateInitialRoutes: buildInitialRoutes,
+        ),
+      ),
+    );
+
+    // Explicit pumps: the Launches screen runs a one-second timer, so
+    // pumpAndSettle would never finish.
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
 
     await tester.tap(find.text('Falcon 9 Block 5 | Starlink Group'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.byType(LaunchDetailScreen), findsOneWidget);
     expect(
