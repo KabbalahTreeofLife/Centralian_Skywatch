@@ -159,4 +159,65 @@ void main() {
     expect(find.text('Retry'), findsNothing);
     expect(find.textContaining('NASA Science'), findsOneWidget);
   });
+
+  testWidgets('a cold start that fails recovers on the next load', (
+    WidgetTester tester,
+  ) async {
+    // The reported bug: the app launches with no network, every tab fails, and
+    // the app is then stuck on the error screen. A later load() must be able to
+    // recover without the user hunting for Retry.
+    int apodCalls = 0;
+    final ApiClient client = ApiClient(
+      client: MockClient((http.Request request) async {
+        switch (request.url.host) {
+          case 'api.nasa.gov':
+            apodCalls++;
+            if (apodCalls == 1) throw http.ClientException('offline');
+            return http.Response(_apodJson, 200);
+          case 'll.thespacedevs.com':
+            return http.Response(_launchJson, 200);
+          case 'api.wheretheiss.at':
+            return http.Response(_issJson, 200);
+        }
+        return http.Response('', 404);
+      }),
+      backoffBase: Duration.zero,
+    );
+
+    final ApodProvider apod = ApodProvider(
+      service: ApodService(apiKey: 'TEST', client: client),
+    );
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<ApodProvider>.value(value: apod),
+          ChangeNotifierProvider<LaunchProvider>(
+            create: (_) =>
+                LaunchProvider(service: LaunchService(client: client)),
+          ),
+          ChangeNotifierProvider<IssProvider>(
+            create: (_) => IssProvider(service: IssService(client: client)),
+          ),
+          ChangeNotifierProvider<FavoritesProvider>(
+            create: (_) => FavoritesProvider()..load(),
+          ),
+        ],
+        child: const MaterialApp(home: MainScaffold()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('You are offline'), findsOneWidget);
+    expect(apodCalls, 1);
+
+    // The network comes back and something calls load() again, as a rebuilt
+    // screen does. It must actually retry.
+    await apod.load();
+    await tester.pumpAndSettle();
+
+    expect(apodCalls, 2);
+    expect(find.text('You are offline'), findsNothing);
+    expect(find.textContaining('NASA Science'), findsOneWidget);
+  });
 }

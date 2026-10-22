@@ -30,14 +30,17 @@ abstract class LoadableProvider<T> extends ChangeNotifier {
 
   /// Fetches the value once.
   ///
-  /// A call is ignored while a request is already in flight, and after the
-  /// first attempt has finished unless [force] is true. That is what keeps tab
-  /// switches from refetching; the Retry button passes `force: true`.
+  /// A call is ignored while a request is already in flight, and after a
+  /// successful load unless [force] is true. That is what keeps tab switches
+  /// from refetching; the Retry button passes `force: true`.
+  ///
+  /// A failed attempt does not count as loaded, so a later plain [load] tries
+  /// again. Without that, a cold start with no network would leave the app
+  /// stuck on the error screen until the user found the Retry button.
   Future<void> load({bool force = false}) async {
     if (_status == LoadStatus.loading) return;
     if (_hasLoaded && !force) return;
 
-    _hasLoaded = true;
     _status = LoadStatus.loading;
     _error = null;
     _notify();
@@ -45,6 +48,8 @@ abstract class LoadableProvider<T> extends ChangeNotifier {
     try {
       _data = await fetch();
       _status = LoadStatus.success;
+      // Only a success is worth caching. A failure stays retryable.
+      _hasLoaded = true;
     } on ApiException catch (error) {
       _error = error;
       _status = LoadStatus.error;
