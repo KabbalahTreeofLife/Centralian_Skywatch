@@ -1,0 +1,19 @@
+# Store text as LF in the repository and check it out as LF everywhere.
+#
+# Without this, `core.autocrlf=true` on Windows makes Flutter's regenerated
+# plugin files (linux/flutter/generated_plugins.cmake and friends) show up as
+# modified after every `flutter pub get` or build, even though their content is
+# identical. Declaring the rule here keeps `git status` honest.
+* text=auto eol=lf
+
+# Binary assets: never apply line-ending conversion.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.jar binary
+*.keystore binary
+*.jks binary
