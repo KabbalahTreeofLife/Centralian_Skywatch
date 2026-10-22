@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'routes/app_router.dart';
 import 'routes/app_routes.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await dotenv.load();
+  } catch (_) {
+    // .env is optional and gitignored, so a fresh clone has none. AppConfig
+    // falls back to DEMO_KEY instead of letting the app fail to start.
+  }
   runApp(const CentralianSkywatchApp());
 }
 
