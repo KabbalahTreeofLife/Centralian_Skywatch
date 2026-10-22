@@ -4,49 +4,113 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:centralian_skywatch/models/apod.dart';
 
-/// A real APOD response captured from api.nasa.gov.
+/// A real entry captured from
+/// `science.nasa.gov/wp-json/wp/v2/apod-basic/`.
 const String _sampleJson = '''
 {
   "date": "2026-10-22",
-  "explanation": "Star light, star bright: is there a green star out tonight?",
-  "hdurl": "https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/nasa-logo@2x.png",
+  "post_id": 1497603,
+  "title": "The First Green Star, WD J1330+6435",
+  "permalink": "https://science.nasa.gov/image-article/apod-2026-october-22-the-first-green-star-wd-j13306435/",
   "media_type": "image",
-  "service_version": "v1",
-  "title": "NASA Science",
-  "url": "https://science.nasa.gov/wp-content/themes/nasa-child/assets/images/nasa-logo@2x.png"
+  "explanation": "<strong>Explanation:</strong> Star light, star bright: is there a <a href=\\"https://science.nasa.gov/sun/\\">green star</a> out tonight?",
+  "credit": "<a href=\\"https://markgarlick.com/\\">Mark A. Garlick</a>/<a href=\\"https://warwick.ac.uk\\">University of Warwick</a>",
+  "alt": "A star shines with a greenish hue in front of a dark field.",
+  "url": "https://science.nasa.gov/image-article/apod-2026-october-22-the-first-green-star-wd-j13306435/",
+  "hdurl": "https://assets.science.nasa.gov/dynamicimage/assets/science/cds/apod/apod/2026/october/green_wd.jpg?w=1280"
 }
 ''';
 
 void main() {
   group('Apod.fromJson', () {
-    test('parses a real APOD response', () {
+    test('parses a real APOD entry', () {
       final Apod apod = Apod.fromJson(
         jsonDecode(_sampleJson) as Map<String, dynamic>,
       );
 
-      expect(apod.title, 'NASA Science');
-      expect(apod.explanation, contains('Star light'));
+      expect(apod.title, 'The First Green Star, WD J1330+6435');
       expect(apod.mediaType, 'image');
-      expect(apod.isImage, isTrue);
-      expect(apod.url, startsWith('https://'));
-      expect(apod.hdUrl, startsWith('https://'));
       expect(apod.date, '2026-10-22');
-      // NASA-owned images carry no copyright field.
-      expect(apod.copyright, isNull);
+      expect(apod.isVideo, isFalse);
+      expect(apod.hasImage, isTrue);
+      expect(apod.permalink, startsWith('https://science.nasa.gov/'));
+      expect(apod.alt, 'A star shines with a greenish hue in front of a dark field.');
     });
 
-    test('handles a video entry without hdurl or copyright', () {
+    test('takes the image from hdurl, not url', () {
+      // The feed's `url` is a link to the article page. Using it as an image
+      // source is what made the app show a broken picture.
+      final Apod apod = Apod.fromJson(
+        jsonDecode(_sampleJson) as Map<String, dynamic>,
+      );
+
+      expect(apod.imageUrl, startsWith('https://assets.science.nasa.gov/'));
+      expect(apod.imageUrl, isNot(apod.permalink));
+    });
+
+    test('strips HTML from the explanation', () {
+      final Apod apod = Apod.fromJson(
+        jsonDecode(_sampleJson) as Map<String, dynamic>,
+      );
+
+      expect(apod.explanation, isNot(contains('<')));
+      expect(apod.explanation, isNot(contains('href')));
+      expect(apod.explanation, contains('Star light, star bright'));
+      expect(apod.explanation, contains('green star'));
+    });
+
+    test('strips HTML from the credit', () {
+      final Apod apod = Apod.fromJson(
+        jsonDecode(_sampleJson) as Map<String, dynamic>,
+      );
+
+      expect(apod.credit, 'Mark A. Garlick/University of Warwick');
+    });
+
+    test('decodes entities left behind by tag removal', () {
       final Apod apod = Apod.fromJson(<String, dynamic>{
-        'title': 'A video',
-        'explanation': 'A description.',
-        'url': 'https://www.youtube.com/embed/abc123',
-        'media_type': 'video',
+        'title': 'Entities',
+        'explanation': 'Tom &amp; Jerry &mdash; a &quot;classic&quot;.',
+        'media_type': 'image',
       });
 
-      expect(apod.isImage, isFalse);
-      expect(apod.hdUrl, isNull);
-      expect(apod.copyright, isNull);
-      expect(apod.date, '');
+      expect(apod.explanation, 'Tom & Jerry — a "classic".');
+    });
+
+    test('a video entry still carries a still frame', () {
+      // The feed gives video entries a poster image in hdurl, so the picture
+      // is shown and the button opens the page to play it.
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'title': 'Sonified: Eagle Nebula Pillars',
+        'media_type': 'video',
+        'url': 'https://science.nasa.gov/image-article/apod-2026-october-18/',
+        'hdurl': 'https://assets.science.nasa.gov/dynamicimage/x.jpg',
+      });
+
+      expect(apod.isVideo, isTrue);
+      expect(apod.hasImage, isTrue);
+      expect(apod.imageUrl, 'https://assets.science.nasa.gov/dynamicimage/x.jpg');
+    });
+
+    test('an entry with no hdurl has no image', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'title': 'No picture',
+        'media_type': 'image',
+        'url': 'https://science.nasa.gov/image-article/x/',
+      });
+
+      expect(apod.hasImage, isFalse);
+      expect(apod.imageUrl, isNull);
+    });
+
+    test('an empty hdurl is treated as missing', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'title': 'Empty picture',
+        'media_type': 'image',
+        'hdurl': '',
+      });
+
+      expect(apod.imageUrl, isNull);
     });
 
     test('survives an empty object', () {
@@ -54,135 +118,21 @@ void main() {
 
       expect(apod.title, 'Astronomy Picture of the Day');
       expect(apod.mediaType, 'image');
-      expect(apod.url, '');
-      expect(apod.hdUrl, isNull);
-    });
-  });
-
-  group('placeholder detection', () {
-    test('flags the site-logo payload NASA serves when it has no picture', () {
-      final Apod apod = Apod.fromJson(
-        jsonDecode(_sampleJson) as Map<String, dynamic>,
-      );
-
-      expect(apod.isPlaceholder, isTrue);
+      expect(apod.explanation, '');
+      expect(apod.date, '');
       expect(apod.imageUrl, isNull);
+      expect(apod.credit, isNull);
+      expect(apod.permalink, isNull);
     });
 
-    test('recovers the real title from the explanation', () {
-      // The feed sends "NASA Science" as the title, but the explanation opens
-      // with the real one. Showing the date instead would throw away a good
-      // title, which is what the first version of this fix did.
-      final Apod apod = Apod.fromJson(
-        jsonDecode(_sampleJson) as Map<String, dynamic>,
-      );
-
-      expect(
-        apod.displayTitle,
-        'Star light, star bright: is there a green star out tonight',
-      );
-    });
-
-    test('falls back to the date when the explanation has no title', () {
+    test('keeps the date as a string so it cannot shift time zones', () {
       final Apod apod = Apod.fromJson(<String, dynamic>{
         'date': '2026-10-22',
-        'title': 'NASA Science',
-        'media_type': 'image',
-        'url': 'https://science.nasa.gov/wp-content/themes/nasa-child/x.png',
-        'explanation': 'No question mark in this text at all.',
-      });
-
-      expect(apod.displayTitle, '2026-10-22');
-    });
-
-    test('ignores a question mark buried deep in the explanation', () {
-      final Apod apod = Apod.fromJson(<String, dynamic>{
-        'date': '2026-10-22',
-        'title': 'NASA Science',
-        'media_type': 'image',
-        'url': 'https://science.nasa.gov/wp-content/themes/nasa-child/x.png',
-        'explanation':
-            '${'A very long sentence that keeps going. ' * 5}'
-            'And then, finally, a question?',
-      });
-
-      // Too long to be a title, so the date is used instead.
-      expect(apod.displayTitle, '2026-10-22');
-    });
-
-    test('a real title is never replaced', () {
-      final Apod apod = Apod.fromJson(<String, dynamic>{
-        'date': '2026-10-22',
-        'title': 'The First Green Star, WD J1330+6435',
-        'media_type': 'image',
-        'url': 'https://apod.nasa.gov/apod/image/2610/green_wd.jpg',
-        'explanation': 'A description.',
-      });
-
-      expect(apod.displayTitle, 'The First Green Star, WD J1330+6435');
-    });
-
-    test('accepts a real APOD image', () {
-      final Apod apod = Apod.fromJson(<String, dynamic>{
-        'date': '2026-10-22',
-        'title': 'The First Green Star, WD J1330+6435',
-        'explanation': 'A description.',
-        'media_type': 'image',
-        'url': 'https://apod.nasa.gov/apod/image/2610/green_wd.jpg',
-        'hdurl': 'https://apod.nasa.gov/apod/image/2610/green_wd_hd.jpg',
-      });
-
-      expect(apod.isPlaceholder, isFalse);
-      expect(
-        apod.imageUrl,
-        'https://apod.nasa.gov/apod/image/2610/green_wd_hd.jpg',
-      );
-      expect(apod.displayTitle, 'The First Green Star, WD J1330+6435');
-    });
-
-    test('prefers hdurl but falls back to url', () {
-      final Apod apod = Apod.fromJson(<String, dynamic>{
-        'date': '2026-10-22',
-        'title': 'No HD today',
-        'media_type': 'image',
-        'url': 'https://apod.nasa.gov/apod/image/2610/only.jpg',
-      });
-
-      expect(apod.imageUrl, 'https://apod.nasa.gov/apod/image/2610/only.jpg');
-    });
-
-    test('a video entry has no image url', () {
-      final Apod apod = Apod.fromJson(<String, dynamic>{
-        'title': 'A video',
-        'media_type': 'video',
-        'url': 'https://www.youtube.com/embed/abc123',
-      });
-
-      expect(apod.imageUrl, isNull);
-      expect(apod.isPlaceholder, isFalse);
-    });
-
-    test('flags a theme asset even when the title looks real', () {
-      final Apod apod = Apod.fromJson(<String, dynamic>{
-        'date': '2026-10-22',
-        'title': 'A real looking title',
-        'media_type': 'image',
-        'url': 'https://science.nasa.gov/wp-content/themes/nasa-child/x.png',
-      });
-
-      expect(apod.isPlaceholder, isTrue);
-      expect(apod.imageUrl, isNull);
-    });
-
-    test('an empty url is not treated as a placeholder', () {
-      final Apod apod = Apod.fromJson(<String, dynamic>{
-        'date': '2026-10-22',
-        'title': 'Missing url',
+        'title': 'A date',
         'media_type': 'image',
       });
 
-      expect(apod.isPlaceholder, isFalse);
-      expect(apod.imageUrl, isNull);
+      expect(apod.date, '2026-10-22');
     });
   });
 }

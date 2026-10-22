@@ -50,3 +50,38 @@ Map<String, dynamic> readMap(Object? value) {
   if (value is Map) return value.cast<String, dynamic>();
   return <String, dynamic>{};
 }
+
+/// Strips HTML tags and decodes the common entities.
+///
+/// NASA's APOD feed returns `explanation` and `copyright` as HTML, with links
+/// and emphasis. The app shows plain text, so the markup is removed rather than
+/// rendered. Unknown entities are left alone instead of being dropped.
+String stripHtml(Object? value) {
+  final String raw = readString(value);
+  if (raw.isEmpty) return '';
+
+  final String withoutTags = raw
+      // Drop script and style bodies entirely, not just their tags.
+      .replaceAll(RegExp(r'<(script|style)\b.*?</\1>', caseSensitive: false, dotAll: true), ' ')
+      // Replace block-level tags with a space so words do not run together,
+      // then remove the remaining inline tags outright. Removing inline tags
+      // with a space would turn "Garlick</a>/<a>Warwick" into "Garlick / Warwick".
+      .replaceAll(RegExp(r'</?(p|div|br|li|ul|ol|h[1-6]|tr|td|blockquote)\b[^>]*>', caseSensitive: false), ' ')
+      .replaceAll(RegExp(r'<[^>]*>'), '');
+
+  final String decoded = withoutTags
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#039;', "'")
+      .replaceAll('&#39;', "'")
+      .replaceAll('&apos;', "'")
+      .replaceAll('&hellip;', '…')
+      .replaceAll('&mdash;', '—')
+      .replaceAll('&ndash;', '–');
+
+  // Collapse the whitespace the tag removal leaves behind.
+  return decoded.replaceAll(RegExp(r'\s+'), ' ').trim();
+}

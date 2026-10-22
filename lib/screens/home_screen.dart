@@ -130,17 +130,15 @@ class _ApodView extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 32),
       children: <Widget>[
         if (apod.imageUrl case final String url)
-          ApodImage(url: url, semanticLabel: apod.title)
-        else if (apod.isImage)
-          const _MissingImageNotice()
+          ApodImage(url: url, semanticLabel: apod.alt ?? apod.title)
         else
-          _VideoCard(apod: apod),
+          const _MissingImageNotice(),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(apod.displayTitle, style: theme.textTheme.headlineSmall),
+              Text(apod.title, style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
                 _subtitle(apod),
@@ -148,6 +146,10 @@ class _ApodView extends StatelessWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
+              if (apod.isVideo) ...<Widget>[
+                const SizedBox(height: 16),
+                _VideoButton(apod: apod),
+              ],
               const SizedBox(height: 16),
               _FavoriteButton(apod: apod),
               const SizedBox(height: 20),
@@ -159,21 +161,19 @@ class _ApodView extends StatelessWidget {
     );
   }
 
-  /// `22 October 2026` plus the credit when NASA is not the owner.
+  /// `22 October 2026` plus the credit when one is given.
   static String _subtitle(Apod apod) {
     final String date = formatApodDate(apod.date);
-    final String? credit = apod.copyright;
+    final String? credit = apod.credit;
     if (credit == null || credit.isEmpty) return date;
-    return '$date  ·  © $credit';
+    return '$date  ·  $credit';
   }
 }
 
-/// Shown when the feed reports an image but sends no usable picture.
+/// Shown when the feed sends an entry with no picture at all.
 ///
-/// NASA's APOD feed intermittently answers with a placeholder record: the
-/// explanation is real, but the image fields point at the site logo. The
-/// picture does exist, so the notice says the feed is at fault rather than
-/// claiming there is no picture.
+/// The feed normally always carries a still frame, even for videos, so this is
+/// a genuine gap rather than the common case.
 class _MissingImageNotice extends StatelessWidget {
   const _MissingImageNotice();
 
@@ -191,19 +191,19 @@ class _MissingImageNotice extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(
-            Icons.cloud_off_outlined,
+            Icons.image_not_supported_outlined,
             size: 48,
             color: theme.colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 12),
           Text(
-            'Picture temporarily unavailable',
+            'No picture for this entry',
             style: theme.textTheme.titleSmall,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
-            'NASA\'s feed is not sending the image right now. '
+            'NASA\'s feed did not include an image. '
             'The description below is still today\'s entry.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
@@ -216,48 +216,28 @@ class _MissingImageNotice extends StatelessWidget {
   }
 }
 
-/// Stands in for the picture when the day's entry is a video.
+/// Opens the entry's page, where a video can be played.
 ///
-/// A video URL cannot be rendered by an image widget, so this shows a poster
-/// frame and a button that opens the video in the browser.
-class _VideoCard extends StatelessWidget {
-  const _VideoCard({required this.apod});
+/// The feed gives a still frame for video entries, so the picture is already on
+/// screen; this button is how the video itself is reached.
+class _VideoButton extends StatelessWidget {
+  const _VideoButton({required this.apod});
 
   final Apod apod;
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    return Container(
-      height: 240,
-      width: double.infinity,
-      color: theme.colorScheme.surfaceContainerHighest,
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(
-            Icons.play_circle_outline,
-            size: 56,
-            color: theme.colorScheme.primary,
-          ),
-          const SizedBox(height: 12),
-          Text('Today\'s entry is a video', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 12),
-          FilledButton.tonalIcon(
-            onPressed: () => _openVideo(context),
-            icon: const Icon(Icons.open_in_new),
-            label: const Text('Watch video'),
-          ),
-        ],
-      ),
+    return FilledButton.tonalIcon(
+      onPressed: () => _open(context),
+      icon: const Icon(Icons.play_circle_outline),
+      label: const Text('Watch video'),
     );
   }
 
-  Future<void> _openVideo(BuildContext context) async {
+  Future<void> _open(BuildContext context) async {
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
-    final Uri? uri = Uri.tryParse(apod.url);
+    final String? link = apod.permalink;
+    final Uri? uri = link == null ? null : Uri.tryParse(link);
 
     if (uri == null ||
         !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
@@ -284,7 +264,7 @@ class _FavoriteButton extends StatelessWidget {
         FavoriteItem(
           id: apod.date,
           type: FavoriteType.apod,
-          title: apod.displayTitle,
+          title: apod.title,
         ),
       ),
       icon: Icon(saved ? Icons.favorite : Icons.favorite_border),

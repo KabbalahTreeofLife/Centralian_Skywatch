@@ -12,25 +12,26 @@ import 'package:centralian_skywatch/screens/home_screen.dart';
 import 'package:centralian_skywatch/services/api_client.dart';
 import 'package:centralian_skywatch/services/apod_service.dart';
 
+/// A real entry, in the array shape the feed returns.
 const String _imageApodJson =
-    '{"date":"2026-10-22","title":"NASA Science","media_type":"image",'
-    '"url":"https://example.test/a.jpg","hdurl":"https://example.test/a-hd.jpg",'
-    '"explanation":"A picture of something far away.",'
-    '"copyright":"Jane Doe"}';
+    '[{"date":"2026-10-22","title":"The First Green Star","media_type":"image",'
+    '"permalink":"https://science.nasa.gov/image-article/apod-2026-october-22/",'
+    '"hdurl":"https://example.test/a-hd.jpg",'
+    '"explanation":"<strong>Explanation:</strong> A picture of something far away.",'
+    '"credit":"Jane Doe"}]';
 
+/// A video entry. The feed still sends a still frame in `hdurl`.
 const String _videoApodJson =
-    '{"date":"2026-10-21","title":"A Launch Video","media_type":"video",'
-    '"url":"https://example.test/video","explanation":"A video entry."}';
+    '[{"date":"2026-10-21","title":"A Launch Video","media_type":"video",'
+    '"permalink":"https://science.nasa.gov/image-article/apod-2026-october-21/",'
+    '"hdurl":"https://example.test/video-still.jpg",'
+    '"explanation":"A video entry."}]';
 
-/// The placeholder NASA's feed serves when it has no picture: the explanation
-/// is real, but the title and image fields point at the site logo.
-const String _placeholderApodJson =
-    '{"date":"2026-10-22","title":"NASA Science","media_type":"image",'
-    '"url":"https://science.nasa.gov/wp-content/themes/nasa-child/assets/'
-    'images/nasa-logo@2x.png",'
-    '"hdurl":"https://science.nasa.gov/wp-content/themes/nasa-child/assets/'
-    'images/nasa-logo@2x.png",'
-    '"explanation":"Star light, star bright: is there a green star out tonight?"}';
+/// An entry with no picture at all.
+const String _noImageApodJson =
+    '[{"date":"2026-10-20","title":"No Picture Today","media_type":"image",'
+    '"permalink":"https://science.nasa.gov/image-article/apod-2026-october-20/",'
+    '"explanation":"The feed sent no image for this entry."}]';
 
 /// Pumps the Home screen over a client that answers APOD requests with [body].
 Future<FavoritesProvider> pumpHome(
@@ -83,10 +84,13 @@ void main() {
   ) async {
     await pumpHome(tester, body: _imageApodJson);
 
-    expect(find.text('NASA Science'), findsOneWidget);
+    expect(find.text('The First Green Star'), findsOneWidget);
     expect(find.textContaining('22 October 2026'), findsOneWidget);
     expect(find.textContaining('Jane Doe'), findsOneWidget);
-    expect(find.text('A picture of something far away.'), findsOneWidget);
+    expect(
+      find.textContaining('A picture of something far away.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('omits the credit when NASA owns the picture', (
@@ -98,14 +102,32 @@ void main() {
     expect(find.textContaining('©'), findsNothing);
   });
 
-  testWidgets('a video entry shows a link instead of an image', (
+  testWidgets('a video entry shows its still frame and a watch button', (
     WidgetTester tester,
   ) async {
     await pumpHome(tester, body: _videoApodJson);
 
-    expect(find.text('Today\'s entry is a video'), findsOneWidget);
+    // The feed sends a poster frame for videos, so the picture is shown.
+    expect(find.text('A Launch Video'), findsOneWidget);
     expect(find.text('Watch video'), findsOneWidget);
-    expect(find.byType(Image), findsNothing);
+  });
+
+  testWidgets('an entry with no picture shows a notice', (
+    WidgetTester tester,
+  ) async {
+    await pumpHome(tester, body: _noImageApodJson);
+
+    expect(find.text('No picture for this entry'), findsOneWidget);
+    expect(find.text('No Picture Today'), findsOneWidget);
+  });
+
+  testWidgets('the explanation is shown without HTML', (
+    WidgetTester tester,
+  ) async {
+    await pumpHome(tester, body: _imageApodJson);
+
+    expect(find.textContaining('<strong>'), findsNothing);
+    expect(find.textContaining('A picture of something far away'), findsWidgets);
   });
 
   testWidgets('a failed load shows the error state and Retry refetches', (
@@ -125,7 +147,7 @@ void main() {
     await tester.tap(find.text('Retry'));
     await tester.pumpAndSettle();
 
-    expect(find.text('NASA Science'), findsOneWidget);
+    expect(find.text('The First Green Star'), findsOneWidget);
     expect(find.text('Retry'), findsNothing);
   });
 
@@ -137,7 +159,7 @@ void main() {
     await pumpHome(tester, body: _imageApodJson, failuresBeforeSuccess: 2);
 
     expect(find.text('Could not load the picture'), findsNothing);
-    expect(find.text('NASA Science'), findsOneWidget);
+    expect(find.text('The First Green Star'), findsOneWidget);
   });
 
   testWidgets('a transport failure shows the offline state', (
@@ -201,7 +223,7 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues(<String, Object>{
       FavoritesProvider.storageKey: <String>[
-        '{"id":"2026-10-22","type":"apod","title":"NASA Science","note":""}',
+        '{"id":"2026-10-22","type":"apod","title":"The First Green Star","note":""}',
       ],
     });
 
@@ -210,37 +232,17 @@ void main() {
     expect(find.text('Saved to favorites'), findsOneWidget);
   });
 
-  testWidgets('a placeholder payload shows a notice instead of the logo', (
-    WidgetTester tester,
-  ) async {
-    await pumpHome(tester, body: _placeholderApodJson);
-
-    expect(find.text('Picture temporarily unavailable'), findsOneWidget);
-    // The site name must never be presented as the picture's title.
-    expect(find.text('NASA Science'), findsNothing);
-    // The real title is recovered from the explanation.
-    expect(
-      find.text('Star light, star bright: is there a green star out tonight'),
-      findsOneWidget,
-    );
-    // The explanation is genuine, so it is still shown.
-    expect(find.textContaining('Star light'), findsWidgets);
-  });
-
-  testWidgets('a placeholder payload is saved under its recovered title', (
+  testWidgets('the picture is saved under its real title', (
     WidgetTester tester,
   ) async {
     final FavoritesProvider favorites = await pumpHome(
       tester,
-      body: _placeholderApodJson,
+      body: _imageApodJson,
     );
 
     await tester.tap(find.text('Save to favorites'));
     await tester.pumpAndSettle();
 
-    expect(
-      favorites.items.single.title,
-      'Star light, star bright: is there a green star out tonight',
-    );
+    expect(favorites.items.single.title, 'The First Green Star');
   });
 }

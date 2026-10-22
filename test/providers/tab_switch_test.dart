@@ -16,8 +16,8 @@ import 'package:centralian_skywatch/services/iss_service.dart';
 import 'package:centralian_skywatch/services/launch_service.dart';
 
 const String _apodJson =
-    '{"date":"2026-10-22","title":"NASA Science","media_type":"image",'
-    '"url":"https://example.test/a.jpg"}';
+    '[{"date":"2026-10-22","title":"The First Green Star","media_type":"image",'
+    '"hdurl":"https://example.test/a.jpg"}]';
 
 const String _launchJson =
     '{"count":1,"results":[{"id":"a","name":"Falcon 9 | Test",'
@@ -50,7 +50,7 @@ void main() {
     final ApiClient client = ApiClient(
       client: MockClient((http.Request request) async {
         switch (request.url.host) {
-          case 'api.nasa.gov':
+          case 'science.nasa.gov':
             apodCalls++;
             return http.Response(_apodJson, 200);
           case 'll.thespacedevs.com':
@@ -110,7 +110,7 @@ void main() {
     final ApiClient client = ApiClient(
       client: MockClient((http.Request request) async {
         switch (request.url.host) {
-          case 'api.nasa.gov':
+          case 'science.nasa.gov':
             apodCalls++;
             // A 404 is not retried, so the first attempt fails and Retry has
             // something to fix.
@@ -158,7 +158,7 @@ void main() {
 
     expect(apodCalls, 2);
     expect(find.text('Retry'), findsNothing);
-    expect(find.textContaining('NASA Science'), findsOneWidget);
+    expect(find.textContaining('The First Green Star'), findsOneWidget);
   });
 
   testWidgets('a cold start that fails recovers on the next load', (
@@ -171,7 +171,7 @@ void main() {
     final ApiClient client = ApiClient(
       client: MockClient((http.Request request) async {
         switch (request.url.host) {
-          case 'api.nasa.gov':
+          case 'science.nasa.gov':
             apodCalls++;
             if (apodCalls == 1) throw http.ClientException('offline');
             return http.Response(_apodJson, 200);
@@ -219,6 +219,6 @@ void main() {
 
     expect(apodCalls, 2);
     expect(find.text('You are offline'), findsNothing);
-    expect(find.textContaining('NASA Science'), findsOneWidget);
+    expect(find.textContaining('The First Green Star'), findsOneWidget);
   });
 }
