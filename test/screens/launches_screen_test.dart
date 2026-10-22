@@ -242,6 +242,18 @@ void main() {
 
     expect(find.byType(LaunchDetailScreen), findsOneWidget);
     expect(find.text('Launch Detail'), findsOneWidget);
+
+    // The hero image pushes the pad row below the fold in the test viewport.
+    // Scope the scroll to the detail screen's own list: the launches list is
+    // still mounted underneath, so there are two scrollables.
+    await tester.scrollUntilVisible(
+      find.text('Space Launch Complex 4E'),
+      200,
+      scrollable: find.descendant(
+        of: find.byType(LaunchDetailScreen),
+        matching: find.byType(Scrollable),
+      ),
+    );
     expect(find.text('Space Launch Complex 4E'), findsOneWidget);
   });
 

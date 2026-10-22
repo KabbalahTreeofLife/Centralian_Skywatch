@@ -7,6 +7,7 @@ import 'package:centralian_skywatch/models/favorite_item.dart';
 import 'package:centralian_skywatch/models/launch.dart';
 import 'package:centralian_skywatch/providers/favorites_provider.dart';
 import 'package:centralian_skywatch/screens/launch_detail_screen.dart';
+import 'package:centralian_skywatch/widgets/launch_image.dart';
 
 /// A launch with every field populated.
 Launch _launch({DateTime? net}) => Launch(
@@ -72,6 +73,12 @@ void main() {
   ) async {
     await pumpDetail(tester, launch: _launch());
 
+    // The hero image pushes the title below the fold in the test viewport.
+    await tester.scrollUntilVisible(
+      find.text('Falcon 9 Block 5 | Starlink Group 15-15'),
+      200,
+    );
+
     expect(
       find.text('Falcon 9 Block 5 | Starlink Group 15-15'),
       findsOneWidget,
@@ -84,6 +91,7 @@ void main() {
   ) async {
     await pumpDetail(tester, launch: _launch());
 
+    await tester.scrollUntilVisible(find.text('Agency'), 200);
     expect(find.text('Agency'), findsOneWidget);
     expect(find.text('Launch site'), findsOneWidget);
     expect(find.text('Vandenberg SFB, CA, USA'), findsOneWidget);
@@ -106,6 +114,7 @@ void main() {
   ) async {
     await pumpDetail(tester, launch: _launch());
 
+    await tester.scrollUntilVisible(find.text('Launching in'), 200);
     expect(find.text('Launching in'), findsOneWidget);
     // Match the countdown's own shape, not the UTC time in the detail rows.
     expect(
@@ -124,6 +133,7 @@ void main() {
       ),
     );
 
+    await tester.scrollUntilVisible(find.text('Scheduled for'), 200);
     expect(find.text('Scheduled for'), findsOneWidget);
     expect(find.textContaining(RegExp(r'^T-\d{2}:\d{2}:\d{2}$')), findsNothing);
   });
@@ -145,8 +155,41 @@ void main() {
       ),
     );
 
+    await tester.scrollUntilVisible(find.text('To be announced'), 200);
     expect(find.text('To be announced'), findsOneWidget);
     expect(find.textContaining('T-'), findsNothing);
+  });
+
+  testWidgets('shows the rocket image', (WidgetTester tester) async {
+    await pumpDetail(tester, launch: _launch());
+
+    expect(find.byType(LaunchImage), findsOneWidget);
+
+    final LaunchImage image = tester.widget<LaunchImage>(
+      find.byType(LaunchImage),
+    );
+    expect(image.url, 'https://example.test/patch.png');
+  });
+
+  testWidgets('shows the image placeholder when the launch has no image', (
+    WidgetTester tester,
+  ) async {
+    await pumpDetail(
+      tester,
+      launch: Launch(
+        id: 'launch-3',
+        name: 'No picture',
+        statusName: 'Go for Launch',
+        statusDescription: '',
+        agency: 'SpaceX',
+        missionType: 'Test',
+        padName: 'Pad',
+        locationName: 'Location',
+      ),
+    );
+
+    expect(find.byType(LaunchImage), findsOneWidget);
+    expect(find.text('No image for this launch'), findsOneWidget);
   });
 
   testWidgets('shows a message when no launch was passed', (
@@ -173,6 +216,7 @@ void main() {
       launch: _launch(),
     );
 
+    await tester.scrollUntilVisible(find.text('Save to favorites'), 200);
     expect(find.text('Save to favorites'), findsOneWidget);
 
     await tester.tap(find.text('Save to favorites'));
