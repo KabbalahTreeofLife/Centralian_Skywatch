@@ -10,9 +10,7 @@ class IssScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('ISS Tracker')),
-      body: const Center(
-        child: Text('Live ISS position will appear here.'),
-      ),
+      body: const Center(child: Text('Live ISS position will appear here.')),
     );
   }
 }
