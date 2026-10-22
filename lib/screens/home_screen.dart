@@ -129,8 +129,10 @@ class _ApodView extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 32),
       children: <Widget>[
-        if (apod.isImage)
-          ApodImage(url: apod.hdUrl ?? apod.url, semanticLabel: apod.title)
+        if (apod.imageUrl case final String url)
+          ApodImage(url: url, semanticLabel: apod.title)
+        else if (apod.isImage)
+          const _MissingImageNotice()
         else
           _VideoCard(apod: apod),
         Padding(
@@ -138,7 +140,7 @@ class _ApodView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(apod.title, style: theme.textTheme.headlineSmall),
+              Text(apod.displayTitle, style: theme.textTheme.headlineSmall),
               const SizedBox(height: 6),
               Text(
                 _subtitle(apod),
@@ -163,6 +165,53 @@ class _ApodView extends StatelessWidget {
     final String? credit = apod.copyright;
     if (credit == null || credit.isEmpty) return date;
     return '$date  ·  © $credit';
+  }
+}
+
+/// Shown when the feed reports an image but sends no usable picture.
+///
+/// NASA's APOD feed intermittently answers with a placeholder record: the
+/// explanation is real, but the image fields point at the site logo. Saying so
+/// is better than rendering a logo as if it were the astronomy picture.
+class _MissingImageNotice extends StatelessWidget {
+  const _MissingImageNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return Container(
+      height: 240,
+      width: double.infinity,
+      color: theme.colorScheme.surfaceContainerHighest,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            Icons.image_not_supported_outlined,
+            size: 48,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No picture available for this date',
+            style: theme.textTheme.titleSmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'NASA\'s feed did not send an image for this entry. '
+            'The description below is still today\'s.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -231,7 +280,11 @@ class _FavoriteButton extends StatelessWidget {
 
     return FilledButton.tonalIcon(
       onPressed: () => favorites.toggle(
-        FavoriteItem(id: apod.date, type: FavoriteType.apod, title: apod.title),
+        FavoriteItem(
+          id: apod.date,
+          type: FavoriteType.apod,
+          title: apod.displayTitle,
+        ),
       ),
       icon: Icon(saved ? Icons.favorite : Icons.favorite_border),
       label: Text(saved ? 'Saved to favorites' : 'Save to favorites'),

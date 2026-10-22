@@ -22,6 +22,16 @@ const String _videoApodJson =
     '{"date":"2026-10-21","title":"A Launch Video","media_type":"video",'
     '"url":"https://example.test/video","explanation":"A video entry."}';
 
+/// The placeholder NASA's feed serves when it has no picture: the explanation
+/// is real, but the title and image fields point at the site logo.
+const String _placeholderApodJson =
+    '{"date":"2026-10-22","title":"NASA Science","media_type":"image",'
+    '"url":"https://science.nasa.gov/wp-content/themes/nasa-child/assets/'
+    'images/nasa-logo@2x.png",'
+    '"hdurl":"https://science.nasa.gov/wp-content/themes/nasa-child/assets/'
+    'images/nasa-logo@2x.png",'
+    '"explanation":"Star light, star bright: is there a green star out tonight?"}';
+
 /// Pumps the Home screen over a client that answers APOD requests with [body].
 Future<FavoritesProvider> pumpHome(
   WidgetTester tester, {
@@ -181,4 +191,32 @@ void main() {
 
     expect(find.text('Saved to favorites'), findsOneWidget);
   });
+
+  testWidgets('a placeholder payload shows a notice instead of the logo', (
+    WidgetTester tester,
+  ) async {
+    await pumpHome(tester, body: _placeholderApodJson);
+
+    expect(find.text('No picture available for this date'), findsOneWidget);
+    // The site name must never be presented as the picture's title.
+    expect(find.text('NASA Science'), findsNothing);
+    expect(find.text('22 October 2026'), findsOneWidget);
+    // The explanation is genuine, so it is still shown.
+    expect(find.textContaining('Star light'), findsOneWidget);
+  });
+
+  testWidgets(
+    'a placeholder payload is saved under its date, not the site name',
+    (WidgetTester tester) async {
+      final FavoritesProvider favorites = await pumpHome(
+        tester,
+        body: _placeholderApodJson,
+      );
+
+      await tester.tap(find.text('Save to favorites'));
+      await tester.pumpAndSettle();
+
+      expect(favorites.items.single.title, '2026-10-22');
+    },
+  );
 }

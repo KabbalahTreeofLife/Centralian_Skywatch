@@ -58,4 +58,80 @@ void main() {
       expect(apod.hdUrl, isNull);
     });
   });
+
+  group('placeholder detection', () {
+    test('flags the site-logo payload NASA serves when it has no picture', () {
+      final Apod apod = Apod.fromJson(
+        jsonDecode(_sampleJson) as Map<String, dynamic>,
+      );
+
+      expect(apod.isPlaceholder, isTrue);
+      expect(apod.imageUrl, isNull);
+      // The date is a better label than the site name.
+      expect(apod.displayTitle, '2026-10-22');
+    });
+
+    test('accepts a real APOD image', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'date': '2026-10-22',
+        'title': 'The First Green Star, WD J1330+6435',
+        'explanation': 'A description.',
+        'media_type': 'image',
+        'url': 'https://apod.nasa.gov/apod/image/2610/green_wd.jpg',
+        'hdurl': 'https://apod.nasa.gov/apod/image/2610/green_wd_hd.jpg',
+      });
+
+      expect(apod.isPlaceholder, isFalse);
+      expect(
+        apod.imageUrl,
+        'https://apod.nasa.gov/apod/image/2610/green_wd_hd.jpg',
+      );
+      expect(apod.displayTitle, 'The First Green Star, WD J1330+6435');
+    });
+
+    test('prefers hdurl but falls back to url', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'date': '2026-10-22',
+        'title': 'No HD today',
+        'media_type': 'image',
+        'url': 'https://apod.nasa.gov/apod/image/2610/only.jpg',
+      });
+
+      expect(apod.imageUrl, 'https://apod.nasa.gov/apod/image/2610/only.jpg');
+    });
+
+    test('a video entry has no image url', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'title': 'A video',
+        'media_type': 'video',
+        'url': 'https://www.youtube.com/embed/abc123',
+      });
+
+      expect(apod.imageUrl, isNull);
+      expect(apod.isPlaceholder, isFalse);
+    });
+
+    test('flags a theme asset even when the title looks real', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'date': '2026-10-22',
+        'title': 'A real looking title',
+        'media_type': 'image',
+        'url': 'https://science.nasa.gov/wp-content/themes/nasa-child/x.png',
+      });
+
+      expect(apod.isPlaceholder, isTrue);
+      expect(apod.imageUrl, isNull);
+    });
+
+    test('an empty url is not treated as a placeholder', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'date': '2026-10-22',
+        'title': 'Missing url',
+        'media_type': 'image',
+      });
+
+      expect(apod.isPlaceholder, isFalse);
+      expect(apod.imageUrl, isNull);
+    });
+  });
 }

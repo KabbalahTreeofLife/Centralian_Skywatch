@@ -36,6 +36,45 @@ class Apod {
   /// Whether the entry can be rendered with an image widget.
   bool get isImage => mediaType == 'image';
 
+  /// Whether the payload is a placeholder rather than a real picture.
+  ///
+  /// NASA's APOD feed sometimes answers with a partially populated record: the
+  /// `explanation` is the genuine text, but `title`, `url` and `hdurl` are
+  /// replaced with the site name and the site logo. Rendering that would show a
+  /// logo as if it were the astronomy picture, so the entry is treated as
+  /// having no usable image.
+  bool get isPlaceholder =>
+      _looksLikeSiteAsset(url) || _looksLikeSiteAsset(hdUrl);
+
+  /// The best image URL for this entry, or null when there is nothing usable.
+  ///
+  /// Prefers the high-resolution file and falls back to the standard one.
+  String? get imageUrl {
+    if (!isImage || isPlaceholder) return null;
+    final String candidate = hdUrl ?? url;
+    return candidate.isEmpty ? null : candidate;
+  }
+
+  /// The title to show, falling back to the date when the feed sends the site
+  /// name instead of a real title.
+  String get displayTitle {
+    if (isPlaceholder && date.isNotEmpty) return date;
+    return title;
+  }
+
+  /// True when [value] points at a NASA site asset rather than an APOD image.
+  ///
+  /// The APOD feed serves its own theme files (for example
+  /// `science.nasa.gov/wp-content/themes/.../nasa-logo@2x.png`) when it has no
+  /// picture to offer. Those paths never contain a real APOD image.
+  static bool _looksLikeSiteAsset(String? value) {
+    if (value == null || value.isEmpty) return false;
+    final String lower = value.toLowerCase();
+    return lower.contains('/wp-content/themes/') ||
+        lower.contains('nasa-logo') ||
+        lower.contains('/assets/images/');
+  }
+
   factory Apod.fromJson(Map<String, dynamic> json) => Apod(
     title: readString(json['title'], fallback: 'Astronomy Picture of the Day'),
     explanation: readString(json['explanation']),
