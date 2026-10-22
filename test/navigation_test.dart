@@ -27,8 +27,9 @@ int stackIndex(WidgetTester tester) =>
     tester.widget<IndexedStack>(find.byType(IndexedStack)).index!;
 
 void main() {
-  testWidgets('opens on the Home tab with the shell as the root route',
-      (WidgetTester tester) async {
+  testWidgets('opens on the Home tab with the shell as the root route', (
+    WidgetTester tester,
+  ) async {
     await pumpAt(tester, AppRoutes.home);
 
     expect(find.byType(MainScaffold), findsOneWidget);
@@ -37,8 +38,9 @@ void main() {
     expect(find.byType(NotFoundScreen), findsNothing);
   });
 
-  testWidgets('each tab route opens the shell at the right tab',
-      (WidgetTester tester) async {
+  testWidgets('each tab route opens the shell at the right tab', (
+    WidgetTester tester,
+  ) async {
     const Map<String, int> cases = <String, int>{
       AppRoutes.home: 0,
       AppRoutes.launches: 1,
@@ -48,16 +50,23 @@ void main() {
 
     for (final MapEntry<String, int> entry in cases.entries) {
       await pumpAt(tester, entry.key);
-      expect(find.byType(MainScaffold), findsOneWidget,
-          reason: '${entry.key} should open the shell');
-      expect(stackIndex(tester), entry.value,
-          reason: '${entry.key} should select tab ${entry.value}');
+      expect(
+        find.byType(MainScaffold),
+        findsOneWidget,
+        reason: '${entry.key} should open the shell',
+      );
+      expect(
+        stackIndex(tester),
+        entry.value,
+        reason: '${entry.key} should select tab ${entry.value}',
+      );
       expect(find.byType(NotFoundScreen), findsNothing);
     }
   });
 
-  testWidgets('tapping a destination switches tabs',
-      (WidgetTester tester) async {
+  testWidgets('tapping a destination switches tabs', (
+    WidgetTester tester,
+  ) async {
     await pumpAt(tester, AppRoutes.home);
     expect(stackIndex(tester), 0);
 
@@ -66,8 +75,9 @@ void main() {
     expect(stackIndex(tester), 2);
   });
 
-  testWidgets('tapping a launch pushes Launch Detail with its argument',
-      (WidgetTester tester) async {
+  testWidgets('tapping a launch pushes Launch Detail with its argument', (
+    WidgetTester tester,
+  ) async {
     await pumpAt(tester, AppRoutes.launches);
 
     await tester.tap(find.text('Falcon 9 Block 5 | Starlink Group'));
@@ -80,8 +90,9 @@ void main() {
     );
   });
 
-  testWidgets('an unknown route falls back to the not-found screen',
-      (WidgetTester tester) async {
+  testWidgets('an unknown route falls back to the not-found screen', (
+    WidgetTester tester,
+  ) async {
     await pumpAt(tester, '/does-not-exist');
 
     expect(find.byType(NotFoundScreen), findsOneWidget);
