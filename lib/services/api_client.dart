@@ -30,6 +30,20 @@ class ApiClient {
   /// Delay before the first retry; it doubles on each further attempt.
   final Duration backoffBase;
 
+  /// Performs a GET and decodes a JSON array of objects.
+  ///
+  /// NASA's APOD feed returns an array of recent entries rather than a single
+  /// object, so it needs its own entry point. Entries that are not objects are
+  /// skipped instead of failing the whole request.
+  Future<List<Map<String, dynamic>>> getJsonList(Uri uri) async {
+    final Object? decoded = await _getDecoded(uri);
+    if (decoded is! List) throw const ParseException();
+
+    return decoded
+        .whereType<Map<String, dynamic>>()
+        .toList(growable: false);
+  }
+
   /// Performs a GET and decodes the JSON object in the response.
   ///
   /// Throws an [ApiException] subtype for every failure mode the app needs to
@@ -40,6 +54,13 @@ class ApiClient {
   /// response and a good one, so a single attempt fails often enough to make
   /// the user press Retry repeatedly.
   Future<Map<String, dynamic>> getJson(Uri uri) async {
+    final Object? decoded = await _getDecoded(uri);
+    if (decoded is! Map<String, dynamic>) throw const ParseException();
+    return decoded;
+  }
+
+  /// Runs the request with retries and returns the decoded JSON body.
+  Future<Object?> _getDecoded(Uri uri) async {
     for (int attempt = 1; ; attempt++) {
       final http.Response response;
       try {
@@ -122,17 +143,16 @@ class ApiClient {
     return 'The server returned an error ($statusCode). Please try again.';
   }
 
-  Map<String, dynamic> _decode(String body, int statusCode) {
+  Object? _decode(String body, int statusCode) {
     try {
       final Object? decoded = jsonDecode(body);
-      if (decoded is! Map<String, dynamic>) {
-        throw const ParseException();
-      }
 
       // NASA and Launch Library report some failures inside a 200 body.
-      final Object? error = decoded['error'] ?? decoded['detail'];
-      if (error is String && error.isNotEmpty) {
-        throw ServerException(statusCode: statusCode, message: error);
+      if (decoded is Map<String, dynamic>) {
+        final Object? error = decoded['error'] ?? decoded['detail'];
+        if (error is String && error.isNotEmpty) {
+          throw ServerException(statusCode: statusCode, message: error);
+        }
       }
 
       return decoded;

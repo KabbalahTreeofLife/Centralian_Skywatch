@@ -13,7 +13,7 @@ import 'package:centralian_skywatch/services/iss_service.dart';
 import 'package:centralian_skywatch/services/launch_service.dart';
 
 const String _apodJson = '''
-{"date":"2026-10-22","title":"NASA Science","media_type":"image","url":"https://example.test/a.jpg"}
+[{"date":"2026-10-22","title":"The First Green Star","media_type":"image","hdurl":"https://example.test/a.jpg"}]
 ''';
 
 const String _launchJson = '''
@@ -41,7 +41,7 @@ void main() {
       await provider.load();
 
       expect(provider.status, LoadStatus.success);
-      expect(provider.data?.title, 'NASA Science');
+      expect(provider.data?.title, 'The First Green Star');
     });
 
     test('exposes a server error', () async {
