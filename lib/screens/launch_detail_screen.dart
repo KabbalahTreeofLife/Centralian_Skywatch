@@ -8,6 +8,7 @@ import '../models/launch.dart';
 import '../providers/favorites_provider.dart';
 import '../utils/countdown.dart';
 import '../utils/date_format.dart';
+import '../widgets/launch_image.dart';
 
 /// Detail screen pushed on top of the shell.
 ///
@@ -81,6 +82,17 @@ class _Detail extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       children: <Widget>[
+        // Full-bleed: cancel the list padding so the photo reaches the edges.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 20),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: LaunchImage(
+              url: launch.imageUrl,
+              semanticLabel: 'Rocket for ${launch.name}',
+            ),
+          ),
+        ),
         Text(launch.name, style: theme.textTheme.headlineSmall),
         const SizedBox(height: 6),
         Text(

@@ -77,10 +77,10 @@ class LaunchCard extends StatelessWidget {
   }
 }
 
-/// The mission patch or rocket image, or a placeholder when there is none.
+/// The rocket image, or a placeholder when the API provides none.
 ///
-/// The API leaves `image` null for many launches, so the placeholder is the
-/// common case rather than an edge case.
+/// The `image` field is populated for every launch in the current feed, but the
+/// model keeps it nullable, so the placeholder is still reachable.
 class _Thumbnail extends StatelessWidget {
   const _Thumbnail({required this.url});
 
