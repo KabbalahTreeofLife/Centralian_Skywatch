@@ -58,9 +58,42 @@ class Apod {
     explanation: stripHtml(json['explanation']),
     mediaType: readString(json['media_type'], fallback: 'image'),
     date: readString(json['date']),
-    imageUrl: readStringOrNull(json['hdurl']),
+    imageUrl: sizedImageUrl(readStringOrNull(json['hdurl'])),
     permalink: readStringOrNull(json['permalink']),
     credit: readStringOrNull(stripHtml(json['credit'])),
     alt: readStringOrNull(stripHtml(json['alt'])),
   );
+}
+
+/// The width to request from NASA's image service.
+///
+/// The picture is shown in a 240px-tall frame, so 720px is three times the
+/// display height: sharp on a high-density screen without fetching more than
+/// the screen can show.
+const int _requestedImageWidth = 720;
+
+/// Rewrites the feed's image URL to ask for a smaller picture.
+///
+/// The feed asks for whatever size the original upload was, up to 7200px wide.
+/// NASA's image service takes a `w` parameter, so the request is narrowed to
+/// [_requestedImageWidth]. The service caps delivery at 1280px, so this roughly
+/// halves the bytes for the largest entries.
+///
+/// Returns the URL unchanged when it has no query string or no `w` parameter,
+/// so an entry from a different host still loads rather than breaking.
+String? sizedImageUrl(String? url) {
+  if (url == null || url.isEmpty) return null;
+
+  final Uri? uri = Uri.tryParse(url);
+  if (uri == null || uri.queryParameters.isEmpty) return url;
+  if (!uri.queryParameters.containsKey('w')) return url;
+
+  final Map<String, String> params = Map<String, String>.of(uri.queryParameters);
+  params['w'] = '$_requestedImageWidth';
+
+  // `h` is dropped rather than scaled: the service derives the height from `w`
+  // and the picture's aspect ratio, and passing a stale `h` would crop it.
+  params.remove('h');
+
+  return uri.replace(queryParameters: params).toString();
 }
