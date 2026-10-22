@@ -1,22 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:provider/provider.dart';
 
+import 'package:centralian_skywatch/providers/apod_provider.dart';
+import 'package:centralian_skywatch/providers/iss_provider.dart';
+import 'package:centralian_skywatch/providers/launch_provider.dart';
 import 'package:centralian_skywatch/routes/app_router.dart';
 import 'package:centralian_skywatch/routes/app_routes.dart';
 import 'package:centralian_skywatch/screens/launch_detail_screen.dart';
 import 'package:centralian_skywatch/screens/main_scaffold.dart';
 import 'package:centralian_skywatch/screens/not_found_screen.dart';
+import 'package:centralian_skywatch/services/api_client.dart';
+import 'package:centralian_skywatch/services/apod_service.dart';
+import 'package:centralian_skywatch/services/iss_service.dart';
+import 'package:centralian_skywatch/services/launch_service.dart';
+
+/// Providers backed by a client that always fails, so the screens settle into
+/// their error state instead of waiting on a real network.
+Widget withProviders(Widget child) {
+  final ApiClient client = ApiClient(
+    client: MockClient((http.Request request) async => http.Response('', 500)),
+    backoffBase: Duration.zero,
+  );
+
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider<ApodProvider>(
+        create: (_) => ApodProvider(
+          service: ApodService(apiKey: 'TEST', client: client),
+        ),
+      ),
+      ChangeNotifierProvider<LaunchProvider>(
+        create: (_) => LaunchProvider(service: LaunchService(client: client)),
+      ),
+      ChangeNotifierProvider<IssProvider>(
+        create: (_) => IssProvider(service: IssService(client: client)),
+      ),
+    ],
+    child: child,
+  );
+}
 
 /// Pumps a bare app that uses the real route table, starting at [route].
 Future<void> pumpAt(WidgetTester tester, String route) async {
   await tester.pumpWidget(
-    MaterialApp(
-      // A changing key forces a fresh Navigator, otherwise re-pumping the same
-      // widget type keeps the old route stack and ignores initialRoute.
-      key: ValueKey<String>(route),
-      initialRoute: route,
-      onGenerateRoute: buildRoute,
-      onGenerateInitialRoutes: buildInitialRoutes,
+    withProviders(
+      MaterialApp(
+        // A changing key forces a fresh Navigator, otherwise re-pumping the same
+        // widget type keeps the old route stack and ignores initialRoute.
+        key: ValueKey<String>(route),
+        initialRoute: route,
+        onGenerateRoute: buildRoute,
+        onGenerateInitialRoutes: buildInitialRoutes,
+      ),
     ),
   );
   await tester.pumpAndSettle();

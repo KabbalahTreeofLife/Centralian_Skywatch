@@ -52,3 +52,13 @@ class ParseException extends ApiException {
     super.message = 'The server sent data the app could not read.',
   ]);
 }
+
+/// A failure the app did not anticipate.
+///
+/// Providers use this so an unexpected bug still produces a readable message
+/// instead of a red error screen.
+class UnexpectedException extends ApiException {
+  const UnexpectedException([
+    super.message = 'Something went wrong. Please try again.',
+  ]);
+}
