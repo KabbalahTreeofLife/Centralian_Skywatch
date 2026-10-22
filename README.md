@@ -29,3 +29,18 @@ Centralian Skywatch brings today's space picture, launch countdowns, and live IS
    flutter run
    ```
 
+## Environment variables
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `NASA_API_KEY` | No | Key for the NASA APOD API. Falls back to `DEMO_KEY` when unset. |
+
+`.env` is gitignored, so it never reaches the repository. Copy `.env.example`
+to `.env` and fill in the key. A free key is available at
+<https://api.nasa.gov/>.
+
+`DEMO_KEY` works without signing up, but it is heavily rate-limited (30
+requests per hour and 50 per day per IP), so a personal key is recommended for
+demos. The app starts normally when `.env` is missing and simply uses
+`DEMO_KEY`.
+
