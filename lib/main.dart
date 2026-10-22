@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import 'config/app_config.dart';
 import 'providers/apod_provider.dart';
+import 'providers/favorites_provider.dart';
 import 'providers/iss_provider.dart';
 import 'providers/launch_provider.dart';
 import 'routes/app_router.dart';
@@ -55,6 +56,11 @@ class CentralianSkywatchApp extends StatelessWidget {
           create: (BuildContext context) => IssProvider(
             service: IssService(client: context.read<ApiClient>()),
           ),
+        ),
+        // Favorites come from local storage, so they are read once at startup
+        // and are ready before any screen asks whether something is saved.
+        ChangeNotifierProvider<FavoritesProvider>(
+          create: (_) => FavoritesProvider()..load(),
         ),
       ],
       child: MaterialApp(

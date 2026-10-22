@@ -3,8 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:centralian_skywatch/providers/apod_provider.dart';
+import 'package:centralian_skywatch/providers/favorites_provider.dart';
 import 'package:centralian_skywatch/providers/iss_provider.dart';
 import 'package:centralian_skywatch/providers/launch_provider.dart';
 import 'package:centralian_skywatch/routes/app_router.dart';
@@ -38,6 +40,9 @@ Widget withProviders(Widget child) {
       ChangeNotifierProvider<IssProvider>(
         create: (_) => IssProvider(service: IssService(client: client)),
       ),
+      ChangeNotifierProvider<FavoritesProvider>(
+        create: (_) => FavoritesProvider()..load(),
+      ),
     ],
     child: child,
   );
@@ -65,6 +70,10 @@ int stackIndex(WidgetTester tester) =>
     tester.widget<IndexedStack>(find.byType(IndexedStack)).index!;
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
+
   testWidgets('opens on the Home tab with the shell as the root route', (
     WidgetTester tester,
   ) async {
