@@ -135,4 +135,53 @@ void main() {
       expect(apod.date, '2026-10-22');
     });
   });
+
+  group('sizedImageUrl', () {
+    test('narrows the requested width', () {
+      // The feed asks for the original upload size, up to 7200px wide, for a
+      // picture shown in a 240px-tall frame.
+      final String? url = sizedImageUrl(
+        'https://assets.science.nasa.gov/x.jpg?w=7200&h=5361&fit=clip',
+      );
+
+      expect(url, contains('w=720'));
+    });
+
+    test('drops h so the picture is not cropped', () {
+      final String? url = sizedImageUrl(
+        'https://assets.science.nasa.gov/x.jpg?w=7200&h=5361&fit=clip',
+      );
+
+      expect(url, isNot(contains('h=')));
+      // The other parameters are left alone.
+      expect(url, contains('fit=clip'));
+    });
+
+    test('leaves a url with no query string alone', () {
+      const String original = 'https://example.test/a.jpg';
+
+      expect(sizedImageUrl(original), original);
+    });
+
+    test('leaves a url with no w parameter alone', () {
+      const String original = 'https://example.test/a.jpg?h=99';
+
+      expect(sizedImageUrl(original), original);
+    });
+
+    test('returns null for a missing url', () {
+      expect(sizedImageUrl(null), isNull);
+      expect(sizedImageUrl(''), isNull);
+    });
+
+    test('is applied when parsing an entry', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'title': 'A picture',
+        'media_type': 'image',
+        'hdurl': 'https://assets.science.nasa.gov/x.jpg?w=5120&h=3840',
+      });
+
+      expect(apod.imageUrl, contains('w=720'));
+    });
+  });
 }
