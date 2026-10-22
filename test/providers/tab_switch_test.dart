@@ -112,8 +112,9 @@ void main() {
         switch (request.url.host) {
           case 'api.nasa.gov':
             apodCalls++;
-            // Fail the first attempt only, so Retry has something to fix.
-            if (apodCalls == 1) return http.Response('', 500);
+            // A 404 is not retried, so the first attempt fails and Retry has
+            // something to fix.
+            if (apodCalls == 1) return http.Response('', 404);
             return http.Response(_apodJson, 200);
           case 'll.thespacedevs.com':
             return http.Response(_launchJson, 200);

@@ -171,8 +171,9 @@ class _ApodView extends StatelessWidget {
 /// Shown when the feed reports an image but sends no usable picture.
 ///
 /// NASA's APOD feed intermittently answers with a placeholder record: the
-/// explanation is real, but the image fields point at the site logo. Saying so
-/// is better than rendering a logo as if it were the astronomy picture.
+/// explanation is real, but the image fields point at the site logo. The
+/// picture does exist, so the notice says the feed is at fault rather than
+/// claiming there is no picture.
 class _MissingImageNotice extends StatelessWidget {
   const _MissingImageNotice();
 
@@ -190,20 +191,20 @@ class _MissingImageNotice extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(
-            Icons.image_not_supported_outlined,
+            Icons.cloud_off_outlined,
             size: 48,
             color: theme.colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 12),
           Text(
-            'No picture available for this date',
+            'Picture temporarily unavailable',
             style: theme.textTheme.titleSmall,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
-            'NASA\'s feed did not send an image for this entry. '
-            'The description below is still today\'s.',
+            'NASA\'s feed is not sending the image right now. '
+            'The description below is still today\'s entry.',
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

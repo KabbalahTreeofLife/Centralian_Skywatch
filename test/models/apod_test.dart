@@ -67,8 +67,59 @@ void main() {
 
       expect(apod.isPlaceholder, isTrue);
       expect(apod.imageUrl, isNull);
-      // The date is a better label than the site name.
+    });
+
+    test('recovers the real title from the explanation', () {
+      // The feed sends "NASA Science" as the title, but the explanation opens
+      // with the real one. Showing the date instead would throw away a good
+      // title, which is what the first version of this fix did.
+      final Apod apod = Apod.fromJson(
+        jsonDecode(_sampleJson) as Map<String, dynamic>,
+      );
+
+      expect(
+        apod.displayTitle,
+        'Star light, star bright: is there a green star out tonight',
+      );
+    });
+
+    test('falls back to the date when the explanation has no title', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'date': '2026-10-22',
+        'title': 'NASA Science',
+        'media_type': 'image',
+        'url': 'https://science.nasa.gov/wp-content/themes/nasa-child/x.png',
+        'explanation': 'No question mark in this text at all.',
+      });
+
       expect(apod.displayTitle, '2026-10-22');
+    });
+
+    test('ignores a question mark buried deep in the explanation', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'date': '2026-10-22',
+        'title': 'NASA Science',
+        'media_type': 'image',
+        'url': 'https://science.nasa.gov/wp-content/themes/nasa-child/x.png',
+        'explanation':
+            '${'A very long sentence that keeps going. ' * 5}'
+            'And then, finally, a question?',
+      });
+
+      // Too long to be a title, so the date is used instead.
+      expect(apod.displayTitle, '2026-10-22');
+    });
+
+    test('a real title is never replaced', () {
+      final Apod apod = Apod.fromJson(<String, dynamic>{
+        'date': '2026-10-22',
+        'title': 'The First Green Star, WD J1330+6435',
+        'media_type': 'image',
+        'url': 'https://apod.nasa.gov/apod/image/2610/green_wd.jpg',
+        'explanation': 'A description.',
+      });
+
+      expect(apod.displayTitle, 'The First Green Star, WD J1330+6435');
     });
 
     test('accepts a real APOD image', () {

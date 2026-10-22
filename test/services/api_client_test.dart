@@ -32,10 +32,12 @@ void main() {
       expect(await api.getJson(_uri), <String, dynamic>{'ok': true});
     });
 
-    test('maps a 500 to ServerException', () async {
-      final ApiClient api = _clientReturning(
-        (http.Request request) async => http.Response('', 500),
-      );
+    test('maps a 500 to ServerException after exhausting retries', () async {
+      int calls = 0;
+      final ApiClient api = _clientReturning((http.Request request) async {
+        calls++;
+        return http.Response('', 500);
+      });
 
       await expectLater(
         api.getJson(_uri),
@@ -47,6 +49,34 @@ void main() {
           ),
         ),
       );
+      expect(calls, 3);
+    });
+
+    test('retries a 500 and then succeeds', () async {
+      // NASA's APOD feed alternates between a 500 and a good response, so a
+      // single attempt fails about half the time.
+      int calls = 0;
+      final ApiClient api = _clientReturning((http.Request request) async {
+        calls++;
+        if (calls < 3) return http.Response('', 500);
+        return http.Response('{"ok": true}', 200);
+      });
+
+      expect(await api.getJson(_uri), <String, dynamic>{'ok': true});
+      expect(calls, 3);
+    });
+
+    test('does not retry a 4xx', () async {
+      // A 4xx means the request is wrong, so repeating it would fail the same
+      // way and waste the caller's time.
+      int calls = 0;
+      final ApiClient api = _clientReturning((http.Request request) async {
+        calls++;
+        return http.Response('', 404);
+      });
+
+      await expectLater(api.getJson(_uri), throwsA(isA<ServerException>()));
+      expect(calls, 1);
     });
 
     test('maps 401 to a message about the API key', () async {
@@ -122,6 +152,21 @@ void main() {
       }, timeout: const Duration(milliseconds: 20));
 
       await expectLater(api.getJson(_uri), throwsA(isA<ApiTimeoutException>()));
+    });
+
+    test('retries a timeout and then succeeds', () async {
+      // A slow response is as transient as a 500, so it is worth another try.
+      int calls = 0;
+      final ApiClient api = _clientReturning((http.Request request) async {
+        calls++;
+        if (calls < 3) {
+          await Future<void>.delayed(const Duration(milliseconds: 200));
+        }
+        return http.Response('{"ok": true}', 200);
+      }, timeout: const Duration(milliseconds: 20));
+
+      expect(await api.getJson(_uri), <String, dynamic>{'ok': true});
+      expect(calls, 3);
     });
 
     test('maps malformed JSON to ParseException', () async {

@@ -38,13 +38,14 @@ Future<FavoritesProvider> pumpHome(
   required String body,
   int statusCode = 200,
   int failuresBeforeSuccess = 0,
+  int failureStatusCode = 500,
 }) async {
   int calls = 0;
   final ApiClient client = ApiClient(
     client: MockClient((http.Request request) async {
       calls++;
       if (calls <= failuresBeforeSuccess) {
-        return http.Response('', 500);
+        return http.Response('', failureStatusCode);
       }
       return http.Response(body, statusCode);
     }),
@@ -110,7 +111,13 @@ void main() {
   testWidgets('a failed load shows the error state and Retry refetches', (
     WidgetTester tester,
   ) async {
-    await pumpHome(tester, body: _imageApodJson, failuresBeforeSuccess: 1);
+    // A 404 is not retried, so the first load fails and the error state shows.
+    await pumpHome(
+      tester,
+      body: _imageApodJson,
+      failuresBeforeSuccess: 1,
+      failureStatusCode: 404,
+    );
 
     expect(find.text('Could not load the picture'), findsOneWidget);
     expect(find.text('Retry'), findsOneWidget);
@@ -120,6 +127,17 @@ void main() {
 
     expect(find.text('NASA Science'), findsOneWidget);
     expect(find.text('Retry'), findsNothing);
+  });
+
+  testWidgets('a flapping 500 is absorbed without showing an error', (
+    WidgetTester tester,
+  ) async {
+    // NASA's feed alternates between a 500 and a good response. The client
+    // retries, so the user never sees the error screen.
+    await pumpHome(tester, body: _imageApodJson, failuresBeforeSuccess: 2);
+
+    expect(find.text('Could not load the picture'), findsNothing);
+    expect(find.text('NASA Science'), findsOneWidget);
   });
 
   testWidgets('a transport failure shows the offline state', (
@@ -197,26 +215,32 @@ void main() {
   ) async {
     await pumpHome(tester, body: _placeholderApodJson);
 
-    expect(find.text('No picture available for this date'), findsOneWidget);
+    expect(find.text('Picture temporarily unavailable'), findsOneWidget);
     // The site name must never be presented as the picture's title.
     expect(find.text('NASA Science'), findsNothing);
-    expect(find.text('22 October 2026'), findsOneWidget);
+    // The real title is recovered from the explanation.
+    expect(
+      find.text('Star light, star bright: is there a green star out tonight'),
+      findsOneWidget,
+    );
     // The explanation is genuine, so it is still shown.
-    expect(find.textContaining('Star light'), findsOneWidget);
+    expect(find.textContaining('Star light'), findsWidgets);
   });
 
-  testWidgets(
-    'a placeholder payload is saved under its date, not the site name',
-    (WidgetTester tester) async {
-      final FavoritesProvider favorites = await pumpHome(
-        tester,
-        body: _placeholderApodJson,
-      );
+  testWidgets('a placeholder payload is saved under its recovered title', (
+    WidgetTester tester,
+  ) async {
+    final FavoritesProvider favorites = await pumpHome(
+      tester,
+      body: _placeholderApodJson,
+    );
 
-      await tester.tap(find.text('Save to favorites'));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('Save to favorites'));
+    await tester.pumpAndSettle();
 
-      expect(favorites.items.single.title, '2026-10-22');
-    },
-  );
+    expect(
+      favorites.items.single.title,
+      'Star light, star bright: is there a green star out tonight',
+    );
+  });
 }
