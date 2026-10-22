@@ -137,24 +137,44 @@ void main() {
   });
 
   group('sizedImageUrl', () {
-    test('narrows the requested width', () {
-      // The feed asks for the original upload size, up to 7200px wide, for a
-      // picture shown in a 240px-tall frame.
+    test('scales a large picture down to the requested edge', () {
+      // The feed asks for the original upload size, which for some entries is
+      // several megabytes, for a picture shown 240px tall.
       final String? url = sizedImageUrl(
         'https://assets.science.nasa.gov/x.jpg?w=7200&h=5361&fit=clip',
       );
 
-      expect(url, contains('w=720'));
+      expect(url, contains('w=1080'));
+      expect(url, contains('h=804'));
     });
 
-    test('drops h so the picture is not cropped', () {
+    test('preserves the aspect ratio', () {
       final String? url = sizedImageUrl(
-        'https://assets.science.nasa.gov/x.jpg?w=7200&h=5361&fit=clip',
+        'https://assets.science.nasa.gov/x.jpg?w=2622&h=1751',
       );
 
-      expect(url, isNot(contains('h=')));
-      // The other parameters are left alone.
+      final Uri parsed = Uri.parse(url!);
+      final int w = int.parse(parsed.queryParameters['w']!);
+      final int h = int.parse(parsed.queryParameters['h']!);
+
+      // 2622/1751 is about 1.497, and the scaled pair must match it.
+      expect(w / h, closeTo(2622 / 1751, 0.01));
+      expect(w, 1080);
+    });
+
+    test('keeps the other parameters', () {
+      final String? url = sizedImageUrl(
+        'https://assets.science.nasa.gov/x.jpg?w=5120&h=3840&fit=clip&crop=faces',
+      );
+
       expect(url, contains('fit=clip'));
+      expect(url, contains('crop=faces'));
+    });
+
+    test('leaves a picture that is already small enough alone', () {
+      const String original = 'https://assets.science.nasa.gov/x.jpg?w=800&h=600';
+
+      expect(sizedImageUrl(original), original);
     });
 
     test('leaves a url with no query string alone', () {
@@ -163,8 +183,14 @@ void main() {
       expect(sizedImageUrl(original), original);
     });
 
-    test('leaves a url with no w parameter alone', () {
-      const String original = 'https://example.test/a.jpg?h=99';
+    test('leaves a url with no dimensions alone', () {
+      const String original = 'https://example.test/a.jpg?fit=clip';
+
+      expect(sizedImageUrl(original), original);
+    });
+
+    test('leaves a url with unparseable dimensions alone', () {
+      const String original = 'https://example.test/a.jpg?w=big&h=small';
 
       expect(sizedImageUrl(original), original);
     });
@@ -181,7 +207,7 @@ void main() {
         'hdurl': 'https://assets.science.nasa.gov/x.jpg?w=5120&h=3840',
       });
 
-      expect(apod.imageUrl, contains('w=720'));
+      expect(apod.imageUrl, contains('w=1080'));
     });
   });
 }

@@ -65,35 +65,45 @@ class Apod {
   );
 }
 
-/// The width to request from NASA's image service.
+/// The longest edge to request from NASA's image service.
 ///
-/// The picture is shown in a 240px-tall frame, so 720px is three times the
-/// display height: sharp on a high-density screen without fetching more than
-/// the screen can show.
-const int _requestedImageWidth = 720;
+/// The picture is shown in a 240px-tall frame that spans the screen width, so
+/// 1080px covers a 360pt-wide phone at 3x without fetching more than the screen
+/// can show.
+const int _requestedImageEdge = 1080;
 
 /// Rewrites the feed's image URL to ask for a smaller picture.
 ///
-/// The feed asks for whatever size the original upload was, up to 7200px wide.
-/// NASA's image service takes a `w` parameter, so the request is narrowed to
-/// [_requestedImageWidth]. The service caps delivery at 1280px, so this roughly
-/// halves the bytes for the largest entries.
+/// The feed asks for the picture at its original upload size, which for some
+/// entries is several megabytes: the 2026-10-21 entry is 2622x1751 and weighs
+/// 8.6 MB, for a picture shown 240px tall.
 ///
-/// Returns the URL unchanged when it has no query string or no `w` parameter,
-/// so an entry from a different host still loads rather than breaking.
+/// NASA's image service takes `w` and `h` parameters, and returns a picture
+/// whose longest edge is the smaller of the two. Both are scaled by the same
+/// factor so the shape is preserved; changing only one would crop or distort
+/// the picture.
+///
+/// Returns the URL unchanged when it has no query string, no `w` parameter, or
+/// no usable dimensions, so an entry from a different host still loads rather
+/// than breaking.
 String? sizedImageUrl(String? url) {
   if (url == null || url.isEmpty) return null;
 
   final Uri? uri = Uri.tryParse(url);
   if (uri == null || uri.queryParameters.isEmpty) return url;
-  if (!uri.queryParameters.containsKey('w')) return url;
 
+  final int? width = int.tryParse(uri.queryParameters['w'] ?? '');
+  final int? height = int.tryParse(uri.queryParameters['h'] ?? '');
+  if (width == null || height == null || width <= 0 || height <= 0) return url;
+
+  // Already small enough: leave it alone rather than upscaling.
+  final int longestEdge = width > height ? width : height;
+  if (longestEdge <= _requestedImageEdge) return url;
+
+  final double scale = _requestedImageEdge / longestEdge;
   final Map<String, String> params = Map<String, String>.of(uri.queryParameters);
-  params['w'] = '$_requestedImageWidth';
-
-  // `h` is dropped rather than scaled: the service derives the height from `w`
-  // and the picture's aspect ratio, and passing a stale `h` would crop it.
-  params.remove('h');
+  params['w'] = '${(width * scale).round()}';
+  params['h'] = '${(height * scale).round()}';
 
   return uri.replace(queryParameters: params).toString();
 }
