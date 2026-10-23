@@ -134,7 +134,10 @@ void main() {
     await pumpHome(tester, body: _imageApodJson);
 
     expect(find.textContaining('<strong>'), findsNothing);
-    expect(find.textContaining('A picture of something far away'), findsWidgets);
+    expect(
+      find.textContaining('A picture of something far away'),
+      findsWidgets,
+    );
   });
 
   testWidgets('the Explanation label is not shown', (

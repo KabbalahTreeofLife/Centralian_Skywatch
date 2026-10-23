@@ -34,7 +34,10 @@ void main() {
       expect(apod.isVideo, isFalse);
       expect(apod.hasImage, isTrue);
       expect(apod.permalink, startsWith('https://science.nasa.gov/'));
-      expect(apod.alt, 'A star shines with a greenish hue in front of a dark field.');
+      expect(
+        apod.alt,
+        'A star shines with a greenish hue in front of a dark field.',
+      );
     });
 
     test('takes the image from hdurl, not url', () {
@@ -137,7 +140,10 @@ void main() {
 
       expect(apod.isVideo, isTrue);
       expect(apod.hasImage, isTrue);
-      expect(apod.imageUrl, 'https://assets.science.nasa.gov/dynamicimage/x.jpg');
+      expect(
+        apod.imageUrl,
+        'https://assets.science.nasa.gov/dynamicimage/x.jpg',
+      );
     });
 
     test('an entry with no hdurl has no image', () {
@@ -220,7 +226,8 @@ void main() {
     });
 
     test('leaves a picture that is already small enough alone', () {
-      const String original = 'https://assets.science.nasa.gov/x.jpg?w=800&h=600';
+      const String original =
+          'https://assets.science.nasa.gov/x.jpg?w=800&h=600';
 
       expect(sizedImageUrl(original), original);
     });

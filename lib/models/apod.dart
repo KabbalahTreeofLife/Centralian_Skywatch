@@ -81,7 +81,10 @@ class Apod {
         : parts.sublist(0, parts.length - 1);
 
     return Apod(
-      title: readString(json['title'], fallback: 'Astronomy Picture of the Day'),
+      title: readString(
+        json['title'],
+        fallback: 'Astronomy Picture of the Day',
+      ),
       explanation: paragraphs.join('\n\n'),
       paragraphs: paragraphs,
       tomorrowTeaser: teaser,
@@ -140,7 +143,9 @@ String? sizedImageUrl(String? url) {
   if (longestEdge <= _requestedImageEdge) return url;
 
   final double scale = _requestedImageEdge / longestEdge;
-  final Map<String, String> params = Map<String, String>.of(uri.queryParameters);
+  final Map<String, String> params = Map<String, String>.of(
+    uri.queryParameters,
+  );
   params['w'] = '${(width * scale).round()}';
   params['h'] = '${(height * scale).round()}';
 
