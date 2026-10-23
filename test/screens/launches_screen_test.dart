@@ -60,11 +60,15 @@ Future<FavoritesProvider> pumpLaunches(
   int statusCode = 200,
   int failuresBeforeSuccess = 0,
   int failureStatusCode = 500,
+  bool offline = false,
 }) async {
   int calls = 0;
   final ApiClient client = ApiClient(
     client: MockClient((http.Request request) async {
       calls++;
+      if (offline) {
+        throw http.ClientException('Connection refused', request.url);
+      }
       if (calls <= failuresBeforeSuccess) {
         return http.Response('', failureStatusCode);
       }
@@ -213,6 +217,23 @@ void main() {
     );
 
     expect(find.byType(ErrorRetryView), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    // A server error is not the network being down, so it must not claim so.
+    expect(find.text('You are offline'), findsNothing);
+  });
+
+  testWidgets('a transport failure names the offline case', (
+    WidgetTester tester,
+  ) async {
+    await pumpLaunches(
+      tester,
+      body: _body(<Map<String, dynamic>>[]),
+      offline: true,
+    );
+
+    expect(find.byType(ErrorRetryView), findsOneWidget);
+    expect(find.text('You are offline'), findsOneWidget);
+    expect(find.byIcon(Icons.wifi_off), findsOneWidget);
     expect(find.text('Retry'), findsOneWidget);
   });
 

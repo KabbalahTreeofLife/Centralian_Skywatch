@@ -59,6 +59,9 @@ class _IssScreenState extends State<IssScreen> {
   @override
   Widget build(BuildContext context) {
     final IssProvider provider = context.watch<IssProvider>();
+    final ({IconData icon, String? title}) failure = describeFailure(
+      provider.error,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -84,6 +87,8 @@ class _IssScreenState extends State<IssScreen> {
           ),
           LoadStatus.error => ErrorRetryView(
             key: const ValueKey<String>('iss_error'),
+            icon: failure.icon,
+            title: failure.title ?? 'Could not load the space station',
             message: provider.error?.message ?? 'Something went wrong.',
             onRetry: () => provider.load(force: true),
           ),
