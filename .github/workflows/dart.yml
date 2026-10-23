@@ -19,11 +19,12 @@ jobs:
 
       - run: flutter pub get
 
-      # Generates the iOS config and installs pods without invoking Flutter's signing check
+      # Generates the iOS config without invoking Flutter's signing check
       - run: flutter build ios --config-only --release --no-codesign
 
       - name: Build unsigned archive
         run: |
+          set -o pipefail
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -32,7 +33,12 @@ jobs:
             archive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+            CODE_SIGN_IDENTITY="" 2>&1 | tee xcodebuild.log
+
+      # Only runs when the archive step fails: prints the lines that matter
+      - name: Show errors
+        if: failure()
+        run: grep -n -i -B3 -A8 "error" xcodebuild.log | head -120
 
       - name: Package IPA
         run: |
