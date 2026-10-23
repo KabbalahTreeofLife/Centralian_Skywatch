@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -72,19 +73,31 @@ class _IssScreenState extends State<IssScreen> {
           ),
         ],
       ),
-      body: switch (provider.status) {
-        LoadStatus.idle || LoadStatus.loading => const LoadingView(
-          message: 'Locating the station…',
-        ),
-        LoadStatus.error => ErrorRetryView(
-          message: provider.error?.message ?? 'Something went wrong.',
-          onRetry: () => provider.load(force: true),
-        ),
-        LoadStatus.success => _tracker(provider.data),
-      },
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        child: switch (provider.status) {
+          LoadStatus.idle || LoadStatus.loading => const LoadingView(
+            key: ValueKey<String>('iss_loading'),
+            message: 'Locating the station…',
+          ),
+          LoadStatus.error => ErrorRetryView(
+            key: const ValueKey<String>('iss_error'),
+            message: provider.error?.message ?? 'Something went wrong.',
+            onRetry: () => provider.load(force: true),
+          ),
+          LoadStatus.success => _tracker(provider.data),
+        },
+      ),
     );
   }
 
+  /// The map, with the readouts floating over its lower edge.
+  ///
+  /// The panel is translucent and blurred so the map stays visible behind it;
+  /// the numbers are the thing being read, so they get a solid-enough surface
+  /// to stay legible over bright terrain and dark ocean alike.
   Widget _tracker(IssPosition? position) {
     if (position == null) {
       return const EmptyStateView(
@@ -94,21 +107,46 @@ class _IssScreenState extends State<IssScreen> {
       );
     }
 
-    return Column(
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+
+    return Stack(
       children: <Widget>[
-        Expanded(child: IssMap(position: position)),
-        const Divider(height: 1),
-        IssReadouts(position: position),
-        if (position.timestamp case final DateTime timestamp)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              'Updated ${_formatTime(timestamp.toLocal())}',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+        Positioned.fill(child: IssMap(position: position)),
+        Positioned(
+          left: 12,
+          right: 12,
+          bottom: 12,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: scheme.surface.withValues(alpha: 0.82),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: scheme.outlineVariant),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    IssReadouts(position: position),
+                    if (position.timestamp case final DateTime timestamp)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          'Updated ${_formatTime(timestamp.toLocal())}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
+        ),
       ],
     );
   }

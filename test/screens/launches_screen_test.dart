@@ -140,7 +140,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(LoadingView), findsOneWidget);
-    expect(find.text('Loading launches…'), findsOneWidget);
+    expect(find.text('Loading launches.'), findsOneWidget);
 
     // Let the pending request finish so the timer is disposed cleanly.
     await tester.pump(const Duration(seconds: 6));
@@ -152,13 +152,18 @@ void main() {
       body: _body(<Map<String, dynamic>>[_soonLaunch(), _distantLaunch()]),
     );
 
-    expect(find.byType(LaunchCard), findsNWidgets(2));
+    // The cards carry a photo banner, so only the first fits the test
+    // viewport. The list is lazy, so the second is built once it scrolls in.
+    expect(find.byType(LaunchCard), findsWidgets);
     expect(
       find.text('Falcon 9 Block 5 | Starlink Group 15-15'),
       findsOneWidget,
     );
-    expect(find.text('Ariane 62 | Demo flight'), findsOneWidget);
     expect(find.text('SpaceX'), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('Ariane 62 | Demo flight'), 200);
+
+    expect(find.text('Ariane 62 | Demo flight'), findsOneWidget);
     expect(find.text('Arianespace'), findsOneWidget);
   });
 

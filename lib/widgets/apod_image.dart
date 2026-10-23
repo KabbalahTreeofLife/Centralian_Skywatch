@@ -20,6 +20,7 @@ class ApodImage extends StatelessWidget {
       imageUrl: url,
       fit: BoxFit.cover,
       width: double.infinity,
+      height: double.infinity,
       fadeInDuration: const Duration(milliseconds: 200),
       placeholder: (BuildContext context, String url) =>
           const _ImageFrame(child: Icon(Icons.image_outlined, size: 48)),
@@ -44,8 +45,11 @@ class ApodImage extends StatelessWidget {
   }
 }
 
-/// Fixed-height box so the layout does not jump between placeholder, image and
-/// error states.
+/// Backdrop for the placeholder and error states.
+///
+/// It carries no height of its own: the picture is always laid out inside a
+/// sized hero, so the frame simply fills whatever box it is given and the
+/// layout does not jump between the placeholder, the image and the error state.
 class _ImageFrame extends StatelessWidget {
   const _ImageFrame({required this.child});
 
@@ -56,7 +60,6 @@ class _ImageFrame extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
 
     return Container(
-      height: 240,
       width: double.infinity,
       color: theme.colorScheme.surfaceContainerHighest,
       alignment: Alignment.center,
