@@ -1,0 +1,56 @@
+name: CI
+
+# The gates the project is graded on: formatting, static analysis and the test
+# suite. Runs on every pull request, and again on main so a bad merge is visible
+# even if a check was bypassed locally.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch makes the previous run pointless, so cancel it
+# rather than paying for both.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Format, analyze and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # Pinned to the version the project is developed against. Floating to
+      # latest would let a toolchain upgrade turn the build red without a code
+      # change, which is noise rather than a signal.
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.9
+          channel: stable
+          cache: true
+
+      # pubspec.yaml lists .env as an asset, but that file holds the NASA API key
+      # and is deliberately untracked. A fresh clone therefore has no .env, the
+      # declared asset is missing, and every build fails before a single check
+      # runs. The example file is the placeholder; no real key is needed to
+      # format, analyze or test.
+      - name: Provide the untracked .env placeholder
+        run: cp .env.example .env
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      # --fatal-infos keeps informational lints from accumulating silently.
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Test
+        run: flutter test
