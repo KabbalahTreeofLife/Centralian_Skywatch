@@ -7,7 +7,6 @@ import '../models/favorite_item.dart';
 import '../providers/apod_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../providers/load_status.dart';
-import '../services/api_exception.dart';
 import '../utils/date_format.dart';
 import '../widgets/apod_image.dart';
 import '../widgets/load_state_views.dart';
@@ -44,10 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
       layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
         return Stack(
           alignment: Alignment.topCenter,
-          children: <Widget>[
-            ...previousChildren,
-            if (currentChild != null) currentChild,
-          ],
+          children: <Widget>[...previousChildren, ?currentChild],
         );
       },
       child: switch (provider.status) {
@@ -81,14 +77,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// The failure state, worded for the kind of failure.
   ///
-  /// Being offline is worth naming separately: it is the one case the user can
-  /// fix themselves, so the icon and title say so rather than blaming the app.
+  /// Being offline is named separately by [describeFailure]; anything else
+  /// falls back to the wording this screen can offer, since it is the one that
+  /// knows a picture was what failed to arrive.
   Widget _errorView(ApodProvider provider) {
-    final bool offline = provider.error is NoInternetException;
+    final ({IconData icon, String? title}) failure = describeFailure(
+      provider.error,
+    );
 
     return ErrorRetryView(
-      icon: offline ? Icons.wifi_off : Icons.error_outline,
-      title: offline ? 'You are offline' : 'Could not load the picture',
+      icon: failure.icon,
+      title: failure.title ?? 'Could not load the picture',
       message:
           provider.error?.message ?? 'Something went wrong. Please try again.',
       onRetry: () => provider.load(force: true),

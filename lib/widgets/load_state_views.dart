@@ -7,6 +7,26 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../services/api_exception.dart';
+
+/// How a failed request should be presented: an icon, and a title naming the
+/// cause when the user can act on it.
+///
+/// Screens share this so the same failure looks the same everywhere instead of
+/// each one inventing its own wording. A generic failure carries no title
+/// (`null`) because the screen knows what it was loading and can say so more
+/// usefully than this function can.
+///
+/// Being offline is the case worth naming: it is the one the user can fix
+/// themselves, so the wording points at their network rather than at the app.
+({IconData icon, String? title}) describeFailure(ApiException? error) {
+  if (error is NoInternetException) {
+    return (icon: Icons.wifi_off, title: 'You are offline');
+  }
+
+  return (icon: Icons.error_outline, title: null);
+}
+
 /// Shown while a screen is waiting for its first response.
 ///
 /// The spinner is paired with a message so the user knows what is loading, not

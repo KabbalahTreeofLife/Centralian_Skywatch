@@ -48,6 +48,9 @@ class _LaunchesScreenState extends State<LaunchesScreen> {
   @override
   Widget build(BuildContext context) {
     final LaunchProvider provider = context.watch<LaunchProvider>();
+    final ({IconData icon, String? title}) failure = describeFailure(
+      provider.error,
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Upcoming Launches')),
@@ -62,6 +65,8 @@ class _LaunchesScreenState extends State<LaunchesScreen> {
           ),
           LoadStatus.error => ErrorRetryView(
             key: const ValueKey<String>('launches_error'),
+            icon: failure.icon,
+            title: failure.title ?? 'Could not load the launches',
             message: provider.error?.message ?? 'Something went wrong.',
             onRetry: () => provider.load(force: true),
           ),
