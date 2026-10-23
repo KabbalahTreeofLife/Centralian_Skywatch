@@ -39,7 +39,7 @@ String _body({
 /// Pumps the ISS screen over a client that answers with [body].
 ///
 /// Uses explicit pumps rather than `pumpAndSettle`: the screen runs a
-/// 5-second auto-refresh timer, so settling would never finish.
+/// 30-second auto-refresh timer, so settling would never finish.
 Future<void> pumpIss(
   WidgetTester tester, {
   required String body,
