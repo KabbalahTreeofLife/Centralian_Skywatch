@@ -41,21 +41,28 @@ class LoadingView extends StatelessWidget {
 /// Shown when a request failed, with a way to try again.
 ///
 /// [onRetry] is required: an error state the user cannot act on is a dead end.
+///
+/// [title] is for screens that can say *why* the request failed — the Home
+/// screen distinguishes "You are offline" from a generic failure — while
+/// [message] carries the detail underneath.
 class ErrorRetryView extends StatelessWidget {
   const ErrorRetryView({
     super.key,
     required this.message,
     required this.onRetry,
+    this.title,
     this.icon = Icons.cloud_off,
   });
 
   final String message;
   final VoidCallback onRetry;
+  final String? title;
   final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final String? title = this.title;
 
     return Center(
       child: Padding(
@@ -65,6 +72,14 @@ class ErrorRetryView extends StatelessWidget {
           children: <Widget>[
             Icon(icon, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: 16),
+            if (title != null) ...<Widget>[
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+            ],
             Text(
               message,
               textAlign: TextAlign.center,
