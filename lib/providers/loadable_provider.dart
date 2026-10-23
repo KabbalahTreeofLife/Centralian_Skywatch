@@ -13,6 +13,7 @@ abstract class LoadableProvider<T> extends ChangeNotifier {
   T? _data;
   ApiException? _error;
   bool _hasLoaded = false;
+  bool _inFlight = false;
   bool _disposed = false;
 
   /// Where the provider is in its request cycle.
@@ -37,31 +38,55 @@ abstract class LoadableProvider<T> extends ChangeNotifier {
   /// A failed attempt does not count as loaded, so a later plain [load] tries
   /// again. Without that, a cold start with no network would leave the app
   /// stuck on the error screen until the user found the Retry button.
-  Future<void> load({bool force = false}) async {
-    if (_status == LoadStatus.loading) return;
+  ///
+  /// Pass [silent] for a refresh the user did not ask for, such as a polling
+  /// screen. The status is left alone, so the UI keeps showing the last good
+  /// value instead of flashing a loading view, and a failure is logged rather
+  /// than replacing that value with an error screen.
+  Future<void> load({bool force = false, bool silent = false}) async {
+    if (_inFlight) return;
     if (_hasLoaded && !force) return;
 
-    _status = LoadStatus.loading;
-    _error = null;
-    _notify();
+    _inFlight = true;
 
+    if (!silent) {
+      _status = LoadStatus.loading;
+      _error = null;
+      _notify();
+    }
+
+    bool changed = false;
     try {
       _data = await fetch();
       _status = LoadStatus.success;
+      _error = null;
       // Only a success is worth caching. A failure stays retryable.
       _hasLoaded = true;
+      changed = true;
     } on ApiException catch (error) {
-      _error = error;
-      _status = LoadStatus.error;
+      if (silent) {
+        // The user did not ask for this refresh, so keep the last good value
+        // on screen and let the next poll try again.
+        debugPrint('Background refresh failed: ${error.message}');
+      } else {
+        _error = error;
+        _status = LoadStatus.error;
+        changed = true;
+      }
     } catch (error, stackTrace) {
       // A non-API failure is a bug rather than a network condition. Log it so
       // it is visible in DevTools, and still give the UI something to show.
       debugPrint('Unexpected provider failure: $error\n$stackTrace');
-      _error = const UnexpectedException();
-      _status = LoadStatus.error;
+      if (!silent) {
+        _error = const UnexpectedException();
+        _status = LoadStatus.error;
+        changed = true;
+      }
+    } finally {
+      _inFlight = false;
     }
 
-    _notify();
+    if (changed) _notify();
   }
 
   /// Performs the actual request. Implemented by each concrete provider.

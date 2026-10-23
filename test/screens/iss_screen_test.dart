@@ -192,4 +192,89 @@ void main() {
 
     expect(calls, 2);
   });
+
+  testWidgets('auto-refresh updates in place without a loading view', (
+    WidgetTester tester,
+  ) async {
+    int calls = 0;
+    Completer<http.Response>? pending;
+    final ApiClient client = ApiClient(
+      client: MockClient((http.Request request) async {
+        calls++;
+        if (calls == 1) {
+          return http.Response(_body(latitude: 10.0), 200);
+        }
+        pending = Completer<http.Response>();
+        return pending!.future;
+      }),
+      backoffBase: Duration.zero,
+    );
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<IssProvider>(
+        create: (_) => IssProvider(service: IssService(client: client)),
+        child: const MaterialApp(home: IssScreen()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.text('10.00° N'), findsOneWidget);
+
+    // The timer fires while the response is still pending.
+    await tester.pump(IssScreen.refreshInterval);
+    await tester.pump();
+
+    expect(calls, 2);
+    expect(find.byType(LoadingView), findsNothing);
+    expect(find.text('10.00° N'), findsOneWidget);
+
+    pending!.complete(http.Response(_body(latitude: 20.0), 200));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.text('20.00° N'), findsOneWidget);
+  });
+
+  testWidgets('the refresh button shows the loading view', (
+    WidgetTester tester,
+  ) async {
+    int calls = 0;
+    Completer<http.Response>? pending;
+    final ApiClient client = ApiClient(
+      client: MockClient((http.Request request) async {
+        calls++;
+        if (calls == 1) {
+          return http.Response(_body(), 200);
+        }
+        pending = Completer<http.Response>();
+        return pending!.future;
+      }),
+      backoffBase: Duration.zero,
+    );
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<IssProvider>(
+        create: (_) => IssProvider(service: IssService(client: client)),
+        child: const MaterialApp(home: IssScreen()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.byType(IssReadouts), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.refresh));
+    await tester.pump();
+
+    expect(find.byType(LoadingView), findsOneWidget);
+
+    pending!.complete(http.Response(_body(), 200));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.byType(IssReadouts), findsOneWidget);
+  });
 }

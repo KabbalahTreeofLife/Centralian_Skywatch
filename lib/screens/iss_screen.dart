@@ -13,8 +13,10 @@ import '../widgets/load_state_views.dart';
 /// ISS tab: where the station is right now.
 ///
 /// Refreshes on its own every [refreshInterval] so the position stays live
-/// without the user having to ask. The timer is cancelled in [dispose], and
-/// every tick checks `mounted` first.
+/// without the user having to ask. Those ticks are silent, so the map and
+/// readouts update in place instead of flashing a loading view; only the
+/// refresh button shows one. The timer is cancelled in [dispose], and every
+/// tick checks `mounted` first.
 class IssScreen extends StatefulWidget {
   const IssScreen({super.key});
 
@@ -41,7 +43,9 @@ class _IssScreenState extends State<IssScreen> {
     });
     _autoRefresh = Timer.periodic(IssScreen.refreshInterval, (_) {
       if (!mounted) return;
-      context.read<IssProvider>().load(force: true);
+      // Silent: the position updates in place. Only the refresh button is
+      // allowed to replace the screen with a loading view.
+      context.read<IssProvider>().load(force: true, silent: true);
     });
   }
 
