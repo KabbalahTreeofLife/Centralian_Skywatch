@@ -39,9 +39,7 @@ class ApiClient {
     final Object? decoded = await _getDecoded(uri);
     if (decoded is! List) throw const ParseException();
 
-    return decoded
-        .whereType<Map<String, dynamic>>()
-        .toList(growable: false);
+    return decoded.whereType<Map<String, dynamic>>().toList(growable: false);
   }
 
   /// Performs a GET and decodes the JSON object in the response.

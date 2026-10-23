@@ -62,11 +62,24 @@ String stripHtml(Object? value) {
 
   final String withoutTags = raw
       // Drop script and style bodies entirely, not just their tags.
-      .replaceAll(RegExp(r'<(script|style)\b.*?</\1>', caseSensitive: false, dotAll: true), ' ')
+      .replaceAll(
+        RegExp(
+          r'<(script|style)\b.*?</\1>',
+          caseSensitive: false,
+          dotAll: true,
+        ),
+        ' ',
+      )
       // Replace block-level tags with a space so words do not run together,
       // then remove the remaining inline tags outright. Removing inline tags
       // with a space would turn "Garlick</a>/<a>Warwick" into "Garlick / Warwick".
-      .replaceAll(RegExp(r'</?(p|div|br|li|ul|ol|h[1-6]|tr|td|blockquote)\b[^>]*>', caseSensitive: false), ' ')
+      .replaceAll(
+        RegExp(
+          r'</?(p|div|br|li|ul|ol|h[1-6]|tr|td|blockquote)\b[^>]*>',
+          caseSensitive: false,
+        ),
+        ' ',
+      )
       .replaceAll(RegExp(r'<[^>]*>'), '');
 
   final String decoded = withoutTags
