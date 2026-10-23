@@ -23,9 +23,9 @@ class IssScreen extends StatefulWidget {
   /// How often to re-fetch the position.
   ///
   /// The station orbits in about 90 minutes, so a few seconds either way makes
-  /// no visible difference; 15s keeps it feeling live without hammering a free
+  /// no visible difference; 5s keeps it feeling live without hammering a free
   /// API.
-  static const Duration refreshInterval = Duration(seconds: 15);
+  static const Duration refreshInterval = Duration(seconds: 5);
 
   @override
   State<IssScreen> createState() => _IssScreenState();
