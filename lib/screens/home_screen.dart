@@ -10,6 +10,7 @@ import '../providers/load_status.dart';
 import '../services/api_exception.dart';
 import '../utils/date_format.dart';
 import '../widgets/apod_image.dart';
+import '../widgets/load_state_views.dart';
 
 /// Home tab: NASA's Astronomy Picture of the Day.
 class HomeScreen extends StatefulWidget {
@@ -39,79 +40,28 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Today in Space')),
       body: switch (provider.status) {
-        LoadStatus.idle || LoadStatus.loading => const _LoadingState(),
-        LoadStatus.error => _ErrorState(
-          error: provider.error,
-          onRetry: () => provider.load(force: true),
+        LoadStatus.idle || LoadStatus.loading => const LoadingView(
+          message: 'Loading today\'s picture…',
         ),
+        LoadStatus.error => _errorView(provider),
         LoadStatus.success => _ApodView(apod: provider.data!),
       },
     );
   }
-}
 
-class _LoadingState extends StatelessWidget {
-  const _LoadingState();
+  /// The failure state, worded for the kind of failure.
+  ///
+  /// Being offline is worth naming separately: it is the one case the user can
+  /// fix themselves, so the icon and title say so rather than blaming the app.
+  Widget _errorView(ApodProvider provider) {
+    final bool offline = provider.error is NoInternetException;
 
-  @override
-  Widget build(BuildContext context) => const Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        CircularProgressIndicator(),
-        SizedBox(height: 16),
-        Text('Loading today\'s picture…'),
-      ],
-    ),
-  );
-}
-
-/// Shown when the request failed, with a message tailored to the failure.
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.error, required this.onRetry});
-
-  final ApiException? error;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final bool offline = error is NoInternetException;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(
-              offline ? Icons.wifi_off : Icons.error_outline,
-              size: 56,
-              color: theme.colorScheme.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              offline ? 'You are offline' : 'Could not load the picture',
-              style: theme.textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error?.message ?? 'Something went wrong. Please try again.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-            ),
-          ],
-        ),
-      ),
+    return ErrorRetryView(
+      icon: offline ? Icons.wifi_off : Icons.error_outline,
+      title: offline ? 'You are offline' : 'Could not load the picture',
+      message:
+          provider.error?.message ?? 'Something went wrong. Please try again.',
+      onRetry: () => provider.load(force: true),
     );
   }
 }

@@ -51,6 +51,51 @@ void main() {
 
       expect(retries, 1);
     });
+
+    testWidgets('shows an optional title above the message', (
+      WidgetTester tester,
+    ) async {
+      await pumpView(
+        tester,
+        ErrorRetryView(
+          title: 'You are offline',
+          message: 'Check your connection.',
+          onRetry: () {},
+        ),
+      );
+
+      expect(find.text('You are offline'), findsOneWidget);
+      expect(find.text('Check your connection.'), findsOneWidget);
+    });
+
+    testWidgets('omits the title when none is given', (
+      WidgetTester tester,
+    ) async {
+      await pumpView(
+        tester,
+        ErrorRetryView(message: 'Failed.', onRetry: () {}),
+      );
+
+      // Exactly two Texts: the message and the Retry label. A third would mean
+      // an empty title row was rendered.
+      expect(find.byType(Text), findsNWidgets(2));
+      expect(find.text('Failed.'), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+    });
+
+    testWidgets('uses the icon it is given', (WidgetTester tester) async {
+      await pumpView(
+        tester,
+        ErrorRetryView(
+          message: 'Failed.',
+          icon: Icons.wifi_off,
+          onRetry: () {},
+        ),
+      );
+
+      expect(find.byIcon(Icons.wifi_off), findsOneWidget);
+      expect(find.byIcon(Icons.cloud_off), findsNothing);
+    });
   });
 
   group('EmptyStateView', () {

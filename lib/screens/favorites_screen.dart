@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/favorite_item.dart';
 import '../providers/favorites_provider.dart';
+import '../widgets/load_state_views.dart';
 
 /// Favorites tab: saved APOD entries and launches with personal notes.
 ///
@@ -25,7 +26,15 @@ class FavoritesScreen extends StatelessWidget {
     // Favorites are read from local storage at startup, so this is only
     // visible for the first frame or two. A spinner would just flash.
     if (!provider.isLoaded) return const SizedBox.shrink();
-    if (provider.isEmpty) return const _EmptyState();
+    if (provider.isEmpty) {
+      return const EmptyStateView(
+        icon: Icons.favorite_outline,
+        title: 'No favorites yet.',
+        message:
+            'Save a picture from Home or a launch from Launches '
+            'to see it here.',
+      );
+    }
 
     return ListView.separated(
       itemCount: provider.count,
@@ -33,43 +42,6 @@ class FavoritesScreen extends StatelessWidget {
           const Divider(height: 1),
       itemBuilder: (BuildContext context, int index) =>
           _FavoriteTile(item: provider.items[index]),
-    );
-  }
-}
-
-/// Shown when nothing has been saved yet.
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(
-              Icons.favorite_outline,
-              size: 64,
-              color: theme.colorScheme.outline,
-            ),
-            const SizedBox(height: 16),
-            Text('No favorites yet.', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(
-              'Save a picture from Home or a launch from Launches '
-              'to see it here.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
