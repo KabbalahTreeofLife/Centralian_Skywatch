@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Pinned to the version the project is developed against. Floating to
       # latest would let a toolchain upgrade turn the build red without a code
