@@ -1,0 +1,49 @@
+name: iOS-ipa-build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    name: 🎉 iOS Build
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter build ios --release --no-codesign
+
+      - name: Package IPA
+        working-directory: build/ios/iphoneos
+        run: |
+          mkdir Payload
+          mv Runner.app Payload/
+          zip -qq -r -9 CentralianSkywatch.ipa Payload
+
+      # Private copy: download from the run's Artifacts section
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CentralianSkywatch-ipa
+          path: build/ios/iphoneos/CentralianSkywatch.ipa
+          retention-days: 7
+
+      # Public pre-release (repo is public, so anyone can download this)
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: build/ios/iphoneos/CentralianSkywatch.ipa
+          asset_name: CentralianSkywatch.ipa
+          tag: alpha
+          release_name: Alpha Test Build
+          prerelease: true
+          overwrite: true
+          body: "Unsigned test build. Sign with Sideloadly or AltStore before installing."
