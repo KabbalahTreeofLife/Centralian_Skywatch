@@ -1,5 +1,5 @@
 name: centralian_skywatch
-description: "A new Flutter project."
+description: "Centralian Skywatch: NASA's astronomy picture of the day, upcoming rocket launches and live ISS tracking in one Flutter app."
 publish_to: 'none'
 version: 0.1.0+1
 
