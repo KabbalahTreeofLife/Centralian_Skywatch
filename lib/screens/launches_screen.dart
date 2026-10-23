@@ -51,15 +51,23 @@ class _LaunchesScreenState extends State<LaunchesScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Upcoming Launches')),
-      body: switch (provider.status) {
-        LoadStatus.idle ||
-        LoadStatus.loading => const LoadingView(message: 'Loading launches…'),
-        LoadStatus.error => ErrorRetryView(
-          message: provider.error?.message ?? 'Something went wrong.',
-          onRetry: () => provider.load(force: true),
-        ),
-        LoadStatus.success => _list(provider.data ?? const <Launch>[]),
-      },
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        child: switch (provider.status) {
+          LoadStatus.idle || LoadStatus.loading => const LoadingView(
+            key: ValueKey<String>('launches_loading'),
+            message: 'Loading launches.',
+          ),
+          LoadStatus.error => ErrorRetryView(
+            key: const ValueKey<String>('launches_error'),
+            message: provider.error?.message ?? 'Something went wrong.',
+            onRetry: () => provider.load(force: true),
+          ),
+          LoadStatus.success => _list(provider.data ?? const <Launch>[]),
+        },
+      ),
     );
   }
 

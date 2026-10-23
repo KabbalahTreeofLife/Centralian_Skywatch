@@ -73,16 +73,23 @@ class _IssScreenState extends State<IssScreen> {
           ),
         ],
       ),
-      body: switch (provider.status) {
-        LoadStatus.idle || LoadStatus.loading => const LoadingView(
-          message: 'Locating the station…',
-        ),
-        LoadStatus.error => ErrorRetryView(
-          message: provider.error?.message ?? 'Something went wrong.',
-          onRetry: () => provider.load(force: true),
-        ),
-        LoadStatus.success => _tracker(provider.data),
-      },
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        child: switch (provider.status) {
+          LoadStatus.idle || LoadStatus.loading => const LoadingView(
+            key: ValueKey<String>('iss_loading'),
+            message: 'Locating the station…',
+          ),
+          LoadStatus.error => ErrorRetryView(
+            key: const ValueKey<String>('iss_error'),
+            message: provider.error?.message ?? 'Something went wrong.',
+            onRetry: () => provider.load(force: true),
+          ),
+          LoadStatus.success => _tracker(provider.data),
+        },
+      ),
     );
   }
 

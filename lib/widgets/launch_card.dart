@@ -55,9 +55,12 @@ class LaunchCard extends StatelessWidget {
                 SizedBox(
                   height: _bannerHeight,
                   width: double.infinity,
-                  child: LaunchImage(
-                    url: launch.imageUrl,
-                    semanticLabel: 'Rocket for ${launch.name}',
+                  child: Hero(
+                    tag: 'launch-hero-${launch.id}',
+                    child: LaunchImage(
+                      url: launch.imageUrl,
+                      semanticLabel: 'Rocket for ${launch.name}',
+                    ),
                   ),
                 ),
                 // Scrim: the chips sit on the photo, so they need a base.

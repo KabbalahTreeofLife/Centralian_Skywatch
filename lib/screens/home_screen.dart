@@ -37,21 +37,43 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final ApodProvider provider = context.watch<ApodProvider>();
 
-    return switch (provider.status) {
-      LoadStatus.success => _ApodView(apod: provider.data!),
-      LoadStatus.error => _plain(_errorView(provider)),
-      LoadStatus.idle || LoadStatus.loading => _plain(
-        const LoadingView(message: 'Loading today\'s picture…'),
-      ),
-    };
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 350),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+        return Stack(
+          alignment: Alignment.topCenter,
+          children: <Widget>[
+            ...previousChildren,
+            if (currentChild != null) currentChild,
+          ],
+        );
+      },
+      child: switch (provider.status) {
+        LoadStatus.success => _ApodView(
+          key: ValueKey<String>(provider.data!.date),
+          apod: provider.data!,
+        ),
+        LoadStatus.error => _plain(
+          const ValueKey<String>('home_error'),
+          _errorView(provider),
+        ),
+        LoadStatus.idle || LoadStatus.loading => _plain(
+          const ValueKey<String>('home_loading'),
+          const LoadingView(message: 'Loading today\'s picture…'),
+        ),
+      },
+    );
   }
 
   /// Loading and error states keep a conventional bar.
   ///
   /// Only the loaded entry gets the full-bleed hero, because only it has a
   /// picture worth giving the whole screen to.
-  Widget _plain(Widget body) {
+  Widget _plain(Key key, Widget body) {
     return Scaffold(
+      key: key,
       appBar: AppBar(title: const Text('Today in Space')),
       body: body,
     );
@@ -79,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
 /// The picture is the screen: it fills a collapsing header, with the title and
 /// date set on a scrim over its lower edge. Everything else scrolls beneath.
 class _ApodView extends StatelessWidget {
-  const _ApodView({required this.apod});
+  const _ApodView({required this.apod, super.key});
 
   final Apod apod;
 
@@ -144,7 +166,10 @@ class _Hero extends StatelessWidget {
       fit: StackFit.expand,
       children: <Widget>[
         if (url != null)
-          ApodImage(url: url, semanticLabel: apod.alt ?? apod.title)
+          Hero(
+            tag: 'apod-hero-${apod.date}',
+            child: ApodImage(url: url, semanticLabel: apod.alt ?? apod.title),
+          )
         else
           const _Starfield(),
         // Top scrim: keeps the bar title legible over a bright photograph.

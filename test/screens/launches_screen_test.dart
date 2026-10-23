@@ -140,7 +140,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(LoadingView), findsOneWidget);
-    expect(find.text('Loading launches…'), findsOneWidget);
+    expect(find.text('Loading launches.'), findsOneWidget);
 
     // Let the pending request finish so the timer is disposed cleanly.
     await tester.pump(const Duration(seconds: 6));

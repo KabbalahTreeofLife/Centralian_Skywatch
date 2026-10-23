@@ -95,9 +95,12 @@ class _Detail extends StatelessWidget {
             background: Stack(
               fit: StackFit.expand,
               children: <Widget>[
-                LaunchImage(
-                  url: launch.imageUrl,
-                  semanticLabel: 'Rocket for ${launch.name}',
+                Hero(
+                  tag: 'launch-hero-${launch.id}',
+                  child: LaunchImage(
+                    url: launch.imageUrl,
+                    semanticLabel: 'Rocket for ${launch.name}',
+                  ),
                 ),
                 // Top scrim: keeps the bar title legible over the photo.
                 DecoratedBox(

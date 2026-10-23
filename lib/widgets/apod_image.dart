@@ -20,6 +20,7 @@ class ApodImage extends StatelessWidget {
       imageUrl: url,
       fit: BoxFit.cover,
       width: double.infinity,
+      height: double.infinity,
       fadeInDuration: const Duration(milliseconds: 200),
       placeholder: (BuildContext context, String url) =>
           const _ImageFrame(child: Icon(Icons.image_outlined, size: 48)),
