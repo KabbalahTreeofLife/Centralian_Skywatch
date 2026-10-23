@@ -30,3 +30,11 @@ flutter:
   uses-material-design: true
   assets:
     - .env
+  fonts:
+    # Variable fonts: one file per family, every weight from the same asset.
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter.ttf
+    - family: SpaceGrotesk
+      fonts:
+        - asset: assets/fonts/SpaceGrotesk.ttf

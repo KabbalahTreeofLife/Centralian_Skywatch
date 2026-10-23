@@ -6,13 +6,15 @@ import '../models/launch.dart';
 import '../providers/favorites_provider.dart';
 import '../utils/countdown.dart';
 import '../utils/date_format.dart';
+import 'launch_image.dart';
 
 /// One upcoming launch, as a tappable card.
 ///
-/// Shows the mission name, agency, status, a thumbnail and — when the launch is
-/// close enough — a live T-minus countdown. The countdown is recomputed from
-/// [now] on every build, so the screen only has to rebuild this card once a
-/// second rather than the card owning a timer of its own.
+/// The rocket photo is the card's header rather than a thumbnail: it fills a
+/// 16:9 banner with the status and the favorite toggle laid over it, and the
+/// mission details sit beneath on the card surface. The countdown is recomputed
+/// from [now] on every build, so the screen only has to rebuild this card once
+/// a second rather than the card owning a timer of its own.
 class LaunchCard extends StatelessWidget {
   const LaunchCard({
     super.key,
@@ -28,103 +30,99 @@ class LaunchCard extends StatelessWidget {
 
   final VoidCallback? onTap;
 
+  /// Height of the photo banner at the top of the card.
+  static const double _bannerHeight = 160;
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _Thumbnail(url: launch.imageUrl),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      launch.name,
-                      style: theme.textTheme.titleMedium,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      launch.agency,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Stack(
+              children: <Widget>[
+                // A fixed banner height rather than the image's own 16:9: in a
+                // scrolling list the card should stay a predictable size, and
+                // a full-width 16:9 box would be taller than the content it
+                // introduces.
+                SizedBox(
+                  height: _bannerHeight,
+                  width: double.infinity,
+                  child: LaunchImage(
+                    url: launch.imageUrl,
+                    semanticLabel: 'Rocket for ${launch.name}',
+                  ),
+                ),
+                // Scrim: the chips sit on the photo, so they need a base.
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: <Color>[
+                          scheme.surface.withValues(alpha: 0.55),
+                          Colors.transparent,
+                          scheme.surface.withValues(alpha: 0.35),
+                        ],
+                        stops: const <double>[0, 0.45, 1],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    _StatusChip(status: launch.statusName),
-                    const SizedBox(height: 8),
-                    _Timing(launch: launch, now: now),
-                  ],
+                  ),
                 ),
+                Positioned(
+                  left: 12,
+                  top: 12,
+                  child: _StatusChip(status: launch.statusName),
+                ),
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: _FavoriteToggle(launch: launch),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    launch.name,
+                    style: theme.textTheme.titleMedium,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    launch.agency,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _Timing(launch: launch, now: now),
+                ],
               ),
-              _FavoriteToggle(launch: launch),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-/// The rocket image, or a placeholder when the API provides none.
-///
-/// The `image` field is populated for every launch in the current feed, but the
-/// model keeps it nullable, so the placeholder is still reachable.
-class _Thumbnail extends StatelessWidget {
-  const _Thumbnail({required this.url});
-
-  final String? url;
-
-  static const double _size = 72;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final String? url = this.url;
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: SizedBox(
-        width: _size,
-        height: _size,
-        child: url == null
-            ? Container(
-                color: theme.colorScheme.surfaceContainerHighest,
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.rocket_launch_outlined,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              )
-            : Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.rocket_launch_outlined,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-      ),
-    );
-  }
-}
-
 /// The launch status, tinted by how close it is to flying.
+///
+/// It is drawn over a photograph, so it carries its own opaque background
+/// instead of relying on the surface behind it.
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.status});
 
@@ -133,24 +131,26 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
     final bool go = status.toLowerCase().contains('go');
 
     final Color background = go
-        ? theme.colorScheme.primaryContainer
-        : theme.colorScheme.surfaceContainerHighest;
-    final Color foreground = go
-        ? theme.colorScheme.onPrimaryContainer
-        : theme.colorScheme.onSurfaceVariant;
+        ? scheme.primary
+        : scheme.surface.withValues(alpha: 0.92);
+    final Color foreground = go ? scheme.onPrimary : scheme.onSurface;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         status,
-        style: theme.textTheme.labelSmall?.copyWith(color: foreground),
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: foreground,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -166,13 +166,14 @@ class _Timing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
     final DateTime? net = launch.net;
 
     if (net == null) {
       return Text(
         'Launch time to be announced',
         style: theme.textTheme.bodySmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
+          color: scheme.onSurfaceVariant,
           fontStyle: FontStyle.italic,
         ),
       );
@@ -180,22 +181,34 @@ class _Timing extends StatelessWidget {
 
     final bool counting = isWithinCountdownWindow(net, now);
 
-    return Row(
-      children: <Widget>[
-        Icon(
-          counting ? Icons.timer_outlined : Icons.event_outlined,
-          size: 16,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(width: 6),
-        Text(
-          counting ? formatCountdown(net, now) : formatDate(net.toLocal()),
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: counting ? scheme.primaryContainer : scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            counting ? Icons.timer_outlined : Icons.event_outlined,
+            size: 16,
+            color: counting
+                ? scheme.onPrimaryContainer
+                : scheme.onSurfaceVariant,
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          Text(
+            counting ? formatCountdown(net, now) : formatDate(net.toLocal()),
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: counting
+                  ? scheme.onPrimaryContainer
+                  : scheme.onSurfaceVariant,
+              fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -210,6 +223,7 @@ class _FavoriteToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final FavoritesProvider favorites = context.watch<FavoritesProvider>();
     final bool saved = favorites.contains(FavoriteType.launch, launch.id);
+    final ColorScheme scheme = Theme.of(context).colorScheme;
 
     return IconButton(
       onPressed: () => favorites.toggle(
@@ -219,8 +233,11 @@ class _FavoriteToggle extends StatelessWidget {
           title: launch.name,
         ),
       ),
+      style: IconButton.styleFrom(
+        backgroundColor: scheme.surface.withValues(alpha: 0.92),
+        foregroundColor: saved ? scheme.primary : scheme.onSurfaceVariant,
+      ),
       icon: Icon(saved ? Icons.favorite : Icons.favorite_border),
-      color: saved ? Theme.of(context).colorScheme.primary : null,
       tooltip: saved ? 'Remove from favorites' : 'Save to favorites',
     );
   }

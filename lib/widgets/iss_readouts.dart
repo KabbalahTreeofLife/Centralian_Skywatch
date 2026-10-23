@@ -14,7 +14,7 @@ class IssReadouts extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       child: Row(
         children: <Widget>[
           Expanded(
@@ -79,20 +79,28 @@ class _Readout extends StatelessWidget {
     return Column(
       children: <Widget>[
         Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Text(
           label,
           style: theme.textTheme.labelSmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
+            letterSpacing: 0.4,
           ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+        const SizedBox(height: 3),
+        // Four readouts share one row, so a long value like `27556 km/h` runs
+        // out of width on a phone. Scaling it down keeps the number and its
+        // unit on one line; wrapping would break at the slash and leave a
+        // stray `h` underneath.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            maxLines: 1,
+            softWrap: false,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+            ),
           ),
         ),
       ],

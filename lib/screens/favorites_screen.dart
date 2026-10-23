@@ -36,10 +36,9 @@ class FavoritesScreen extends StatelessWidget {
       );
     }
 
-    return ListView.separated(
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: provider.count,
-      separatorBuilder: (BuildContext context, int index) =>
-          const Divider(height: 1),
       itemBuilder: (BuildContext context, int index) =>
           _FavoriteTile(item: provider.items[index]),
     );
@@ -55,35 +54,82 @@ class _FavoriteTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final FavoritesProvider provider = context.read<FavoritesProvider>();
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+    final bool isApod = item.type == FavoriteType.apod;
 
-    return ListTile(
-      leading: Icon(
-        item.type == FavoriteType.apod
-            ? Icons.image_outlined
-            : Icons.rocket_launch_outlined,
-      ),
-      title: Text(item.title),
-      subtitle: Text(item.note.isEmpty ? 'No note' : item.note),
-      onTap: () => _editNote(context, provider),
-      trailing: PopupMenuButton<_FavoriteAction>(
-        onSelected: (_FavoriteAction action) {
-          if (action == _FavoriteAction.editNote) {
-            _editNote(context, provider);
-          } else {
-            _confirmDelete(context, provider);
-          }
-        },
-        itemBuilder: (BuildContext context) =>
-            const <PopupMenuEntry<_FavoriteAction>>[
-              PopupMenuItem<_FavoriteAction>(
-                value: _FavoriteAction.editNote,
-                child: Text('Edit note'),
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => _editNote(context, provider),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 4, 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  isApod ? Icons.image_outlined : Icons.rocket_launch_outlined,
+                  size: 22,
+                  color: scheme.onPrimaryContainer,
+                ),
               ),
-              PopupMenuItem<_FavoriteAction>(
-                value: _FavoriteAction.delete,
-                child: Text('Delete'),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      item.note.isEmpty ? 'No note' : item.note,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontStyle: item.note.isEmpty
+                            ? FontStyle.italic
+                            : FontStyle.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuButton<_FavoriteAction>(
+                onSelected: (_FavoriteAction action) {
+                  if (action == _FavoriteAction.editNote) {
+                    _editNote(context, provider);
+                  } else {
+                    _confirmDelete(context, provider);
+                  }
+                },
+                itemBuilder: (BuildContext context) =>
+                    const <PopupMenuEntry<_FavoriteAction>>[
+                      PopupMenuItem<_FavoriteAction>(
+                        value: _FavoriteAction.editNote,
+                        child: Text('Edit note'),
+                      ),
+                      PopupMenuItem<_FavoriteAction>(
+                        value: _FavoriteAction.delete,
+                        child: Text('Delete'),
+                      ),
+                    ],
               ),
             ],
+          ),
+        ),
       ),
     );
   }

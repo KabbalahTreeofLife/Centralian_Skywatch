@@ -37,15 +37,23 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final ApodProvider provider = context.watch<ApodProvider>();
 
+    return switch (provider.status) {
+      LoadStatus.success => _ApodView(apod: provider.data!),
+      LoadStatus.error => _plain(_errorView(provider)),
+      LoadStatus.idle || LoadStatus.loading => _plain(
+        const LoadingView(message: 'Loading today\'s picture…'),
+      ),
+    };
+  }
+
+  /// Loading and error states keep a conventional bar.
+  ///
+  /// Only the loaded entry gets the full-bleed hero, because only it has a
+  /// picture worth giving the whole screen to.
+  Widget _plain(Widget body) {
     return Scaffold(
       appBar: AppBar(title: const Text('Today in Space')),
-      body: switch (provider.status) {
-        LoadStatus.idle || LoadStatus.loading => const LoadingView(
-          message: 'Loading today\'s picture…',
-        ),
-        LoadStatus.error => _errorView(provider),
-        LoadStatus.success => _ApodView(apod: provider.data!),
-      },
+      body: body,
     );
   }
 
@@ -67,43 +75,127 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 /// The loaded picture, its details and the favorite button.
+///
+/// The picture is the screen: it fills a collapsing header, with the title and
+/// date set on a scrim over its lower edge. Everything else scrolls beneath.
 class _ApodView extends StatelessWidget {
   const _ApodView({required this.apod});
+
+  final Apod apod;
+
+  /// How tall the picture is before it collapses into the bar.
+  static const double _heroHeight = 420;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: <Widget>[
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: _heroHeight,
+            backgroundColor: theme.colorScheme.surface,
+            surfaceTintColor: Colors.transparent,
+            title: const Text('Today in Space'),
+            flexibleSpace: FlexibleSpaceBar(
+              collapseMode: CollapseMode.parallax,
+              background: _Hero(apod: apod),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+            sliver: SliverList.list(
+              children: <Widget>[
+                if (apod.isVideo) ...<Widget>[
+                  _VideoButton(apod: apod),
+                  const SizedBox(height: 12),
+                ],
+                _FavoriteButton(apod: apod),
+                if (apod.imageUrl == null) ...<Widget>[
+                  const SizedBox(height: 20),
+                  const _MissingImageNotice(),
+                ],
+                const SizedBox(height: 28),
+                _Explanation(apod: apod),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The picture, its scrims, and the title laid over the bottom edge.
+class _Hero extends StatelessWidget {
+  const _Hero({required this.apod});
 
   final Apod apod;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+    final String? url = apod.imageUrl;
 
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 32),
+    return Stack(
+      fit: StackFit.expand,
       children: <Widget>[
-        if (apod.imageUrl case final String url)
+        if (url != null)
           ApodImage(url: url, semanticLabel: apod.alt ?? apod.title)
         else
-          const _MissingImageNotice(),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+          const _Starfield(),
+        // Top scrim: keeps the bar title legible over a bright photograph.
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.center,
+              colors: <Color>[
+                scheme.surface.withValues(alpha: 0.8),
+                Colors.transparent,
+              ],
+            ),
+          ),
+        ),
+        // Bottom scrim: the title and date sit on a solid base.
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.center,
+              end: Alignment.bottomCenter,
+              colors: <Color>[
+                Colors.transparent,
+                scheme.surface.withValues(alpha: 0.9),
+                scheme.surface,
+              ],
+              stops: const <double>[0, 0.7, 1],
+            ),
+          ),
+        ),
+        Positioned(
+          left: 20,
+          right: 20,
+          bottom: 24,
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(apod.title, style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 6),
+              Text(
+                apod.title,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 8),
               Text(
                 _subtitle(apod),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
-              if (apod.isVideo) ...<Widget>[
-                const SizedBox(height: 16),
-                _VideoButton(apod: apod),
-              ],
-              const SizedBox(height: 16),
-              _FavoriteButton(apod: apod),
-              const SizedBox(height: 20),
-              _Explanation(apod: apod),
             ],
           ),
         ),
@@ -120,6 +212,32 @@ class _ApodView extends StatelessWidget {
   }
 }
 
+/// Backdrop for an entry that arrived without a picture.
+///
+/// A soft glow rather than a flat grey, so the header still reads as part of
+/// the same screen instead of a hole in it.
+class _Starfield extends StatelessWidget {
+  const _Starfield();
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: RadialGradient(
+          center: const Alignment(0.2, -0.6),
+          radius: 1.1,
+          colors: <Color>[
+            scheme.primary.withValues(alpha: 0.35),
+            scheme.surface,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// The description, laid out for reading.
 ///
 /// The feed sends one long run of prose, so the text is justified and given
@@ -133,8 +251,8 @@ class _Explanation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final TextStyle? body = theme.textTheme.bodyMedium?.copyWith(
-      height: 1.6,
+    final TextStyle? body = theme.textTheme.bodyLarge?.copyWith(
+      height: 1.65,
       letterSpacing: 0.1,
     );
 
@@ -142,12 +260,8 @@ class _Explanation extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         for (final String paragraph in apod.paragraphs) ...<Widget>[
-          Text(
-            paragraph,
-            style: body,
-            textAlign: TextAlign.justify,
-          ),
-          const SizedBox(height: 14),
+          Text(paragraph, style: body, textAlign: TextAlign.justify),
+          const SizedBox(height: 16),
         ],
         if (apod.tomorrowTeaser case final String teaser)
           _TomorrowTeaser(text: teaser),
@@ -168,28 +282,26 @@ class _TomorrowTeaser extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Icon(
-            Icons.arrow_forward,
-            size: 18,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          const SizedBox(width: 10),
+          Icon(Icons.arrow_forward, size: 18, color: scheme.onSurfaceVariant),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+                color: scheme.onSurfaceVariant,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -210,20 +322,23 @@ class _MissingImageNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
 
     return Container(
-      height: 240,
       width: double.infinity,
-      color: theme.colorScheme.surfaceContainerHighest,
-      alignment: Alignment.center,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(
             Icons.image_not_supported_outlined,
-            size: 48,
-            color: theme.colorScheme.onSurfaceVariant,
+            size: 40,
+            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 12),
           Text(
@@ -236,7 +351,7 @@ class _MissingImageNotice extends StatelessWidget {
             'NASA\'s feed did not include an image. '
             'The description below is still today\'s entry.',
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+              color: scheme.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
           ),
@@ -291,11 +406,7 @@ class _FavoriteButton extends StatelessWidget {
 
     return FilledButton.tonalIcon(
       onPressed: () => favorites.toggle(
-        FavoriteItem(
-          id: apod.date,
-          type: FavoriteType.apod,
-          title: apod.title,
-        ),
+        FavoriteItem(id: apod.date, type: FavoriteType.apod, title: apod.title),
       ),
       icon: Icon(saved ? Icons.favorite : Icons.favorite_border),
       label: Text(saved ? 'Saved to favorites' : 'Save to favorites'),
