@@ -171,21 +171,23 @@ flutter test
 
 ## Debugging case
 
-<!-- Screenshot is added in #16:
-![Console after repeated hot restarts](docs/screenshots/debugging-context-lost.png)
--->
+![Chrome DevTools showing the ISS map camera-constraint assertion](docs/screenshots/debugging-iss-camera-constraint.png)
 
-After a long session of hot restarts in Chrome the app stopped rendering and
-the console showed `Too many active WebGL contexts`, followed by
-`Uncaught DartError: LateInitializationError: Field '_handledContextLostEvent'
-has not been initialized`. The stack trace pointed into Flutter's CanvasKit
-engine rather than app code, so I read the engine source in the SDK cache and
-found the field is only ever assigned by the test-only `triggerContextLoss()`
-hook — meaning a real WebGL context loss throws. The fault was in the engine,
-not the app: the context churn came from accumulated hot restarts, a full page
-reload cleared it, and the release build is unaffected because it does not
-restart contexts that way. The working practice became hot reload (`r`) instead
-of hot restart (`R`) during UI work.
+While testing the ISS tracker in Chrome's mobile device emulation, the console
+reported `MapCamera is no longer within the cameraConstraint after an option
+change.` The stack led from `IssMap` in `iss_screen.dart` into
+`flutter_map`'s map-controller options setter. The map used
+`CameraConstraint.contain` to keep the entire viewport inside longitude bounds
+of -180° to 180°. On a narrow portrait viewport, that also restricted the
+camera center; at the station's reported position of 21.85° N, 148.62° E, the
+map could not follow the ISS to its actual longitude. A later position update
+rebuilt the map options while the camera was at that constrained edge, causing
+the assertion.
+
+I changed the constraint to `CameraConstraint.containCenter`, which keeps the
+camera center within the world bounds without requiring the entire viewport to
+fit inside them. This lets the map center on the ISS near the edge of the map,
+including on narrow screens.
 
 ## Release build
 
