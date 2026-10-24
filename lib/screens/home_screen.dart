@@ -9,6 +9,7 @@ import '../providers/favorites_provider.dart';
 import '../providers/load_status.dart';
 import '../utils/date_format.dart';
 import '../widgets/apod_image.dart';
+import '../widgets/favorite_feedback.dart';
 import '../widgets/load_state_views.dart';
 
 /// Home tab: NASA's Astronomy Picture of the Day.
@@ -429,9 +430,17 @@ class _FavoriteButton extends StatelessWidget {
     final bool saved = favorites.contains(FavoriteType.apod, apod.date);
 
     return FilledButton.tonalIcon(
-      onPressed: () => favorites.toggle(
-        FavoriteItem(id: apod.date, type: FavoriteType.apod, title: apod.title),
-      ),
+      onPressed: () async {
+        final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+        final bool ok = await favorites.toggle(
+          FavoriteItem(
+            id: apod.date,
+            type: FavoriteType.apod,
+            title: apod.title,
+          ),
+        );
+        if (!ok) showFavoriteSaveError(messenger);
+      },
       icon: Icon(saved ? Icons.favorite : Icons.favorite_border),
       label: Text(saved ? 'Saved to favorites' : 'Save to favorites'),
     );

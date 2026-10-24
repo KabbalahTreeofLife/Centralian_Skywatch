@@ -6,6 +6,7 @@ import '../models/launch.dart';
 import '../providers/favorites_provider.dart';
 import '../utils/countdown.dart';
 import '../utils/date_format.dart';
+import 'favorite_feedback.dart';
 import 'launch_image.dart';
 
 /// One upcoming launch, as a tappable card.
@@ -122,6 +123,14 @@ class LaunchCard extends StatelessWidget {
   }
 }
 
+/// Whether [status] is the positive "Go for Launch" status.
+///
+/// Matched by name rather than by searching for "go" inside the text, which
+/// would also match a negative status such as "No-Go".
+@visibleForTesting
+bool isGoForLaunch(String status) =>
+    status.trim().toLowerCase() == 'go for launch';
+
 /// The launch status, tinted by how close it is to flying.
 ///
 /// It is drawn over a photograph, so it carries its own opaque background
@@ -135,7 +144,7 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme scheme = theme.colorScheme;
-    final bool go = status.toLowerCase().contains('go');
+    final bool go = isGoForLaunch(status);
 
     final Color background = go
         ? scheme.primary
@@ -229,13 +238,17 @@ class _FavoriteToggle extends StatelessWidget {
     final ColorScheme scheme = Theme.of(context).colorScheme;
 
     return IconButton(
-      onPressed: () => favorites.toggle(
-        FavoriteItem(
-          id: launch.id,
-          type: FavoriteType.launch,
-          title: launch.name,
-        ),
-      ),
+      onPressed: () async {
+        final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+        final bool ok = await favorites.toggle(
+          FavoriteItem(
+            id: launch.id,
+            type: FavoriteType.launch,
+            title: launch.name,
+          ),
+        );
+        if (!ok) showFavoriteSaveError(messenger);
+      },
       style: IconButton.styleFrom(
         backgroundColor: scheme.surface.withValues(alpha: 0.92),
         foregroundColor: saved ? scheme.primary : scheme.onSurfaceVariant,

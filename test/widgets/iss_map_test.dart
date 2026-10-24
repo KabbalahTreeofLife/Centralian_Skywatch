@@ -26,6 +26,10 @@ Future<void> pumpMap(WidgetTester tester, IssPosition position) async {
   await tester.pump();
 }
 
+/// The camera the map is currently showing.
+MapCamera currentCamera(WidgetTester tester) =>
+    MapCamera.of(tester.element(find.byType(MarkerLayer)));
+
 /// The tile layer the map is configured with.
 TileLayer tileLayer(WidgetTester tester) =>
     tester.widget<TileLayer>(find.byType(TileLayer));
@@ -61,6 +65,34 @@ void main() {
 
       expect(map.options.initialCenter.latitude, 12.34);
       expect(map.options.initialCenter.longitude, 56.78);
+    });
+
+    testWidgets('follows the station when the position changes', (
+      WidgetTester tester,
+    ) async {
+      // initialCenter is only read when the map is created, so without a
+      // controller the marker would move while the camera stayed behind.
+      await pumpMap(tester, _position(latitude: 10, longitude: -20));
+      await pumpMap(tester, _position(latitude: -30, longitude: 60));
+      // The camera moves in a post-frame callback, so give it one more frame.
+      await tester.pump();
+
+      final MapCamera camera = currentCamera(tester);
+
+      expect(camera.center.latitude, closeTo(-30, 0.01));
+      expect(camera.center.longitude, closeTo(60, 0.01));
+    });
+
+    testWidgets('keeps the zoom when it follows the station', (
+      WidgetTester tester,
+    ) async {
+      await pumpMap(tester, _position(latitude: 10, longitude: -20));
+      final double before = currentCamera(tester).zoom;
+
+      await pumpMap(tester, _position(latitude: -30, longitude: 60));
+      await tester.pump();
+
+      expect(currentCamera(tester).zoom, before);
     });
 
     group('OpenStreetMap tile policy', () {
