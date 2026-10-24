@@ -15,6 +15,7 @@ Built for **SE2142 — Software Engineering**, Final Project.
 | Requirement | How it is met |
 | --- | --- |
 | At least 4 screens | 5 content screens plus a 404 route: Home, Launches, Launch detail, ISS, Favorites, NotFound. |
+| Screenshots | Five screens captured at a 390×844 phone viewport: [Screens](#screens). |
 | Navigation, with data passed between screens | Named routes. The selected `Launch` is passed as route arguments and read back from `ModalRoute.settings.arguments`. |
 | State management | `provider`, one `ChangeNotifier` per data source, over a shared `LoadableProvider` holding an explicit `LoadStatus`. |
 | CRUD | Favorites: create (save), read (list), update (note), delete (remove). |
@@ -49,14 +50,13 @@ Built for **SE2142 — Software Engineering**, Final Project.
 
 ## Screens
 
-<!-- Screenshots are added in #16. -->
 | Home | Launches | Launch detail |
-| --- | --- | --- |
-| _pending_ | _pending_ | _pending_ |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/01-home.png" width="240" alt="Home screen showing the astronomy picture of the day"> | <img src="docs/screenshots/02-launches.png" width="240" alt="Launches list with countdowns"> | <img src="docs/screenshots/03-launch-detail.png" width="240" alt="Launch detail with agency, pad and status"> |
 
 | ISS tracker | Favorites |
-| --- | --- |
-| _pending_ | _pending_ |
+| :---: | :---: |
+| <img src="docs/screenshots/04-iss.png" width="240" alt="ISS position on a map with live readouts"> | <img src="docs/screenshots/05-favorites.png" width="240" alt="Saved pictures and launches"> |
 
 ## Getting started
 
