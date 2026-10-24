@@ -15,7 +15,7 @@ Built for **SE2142 — Software Engineering**, Final Project.
 | Requirement | How it is met |
 | --- | --- |
 | At least 4 screens | 5 content screens plus a 404 route: Home, Launches, Launch detail, ISS, Favorites, NotFound. |
-| Screenshots | Five screens captured at a 390×844 phone viewport: [Screens](#screens). |
+| Screenshots | Main screens and key UI states, plus the GitHub Issues page: [Screens](#screens). |
 | Navigation, with data passed between screens | Named routes. The selected `Launch` is passed as route arguments and read back from `ModalRoute.settings.arguments`. |
 | State management | `provider`, one `ChangeNotifier` per data source, over a shared `LoadableProvider` holding an explicit `LoadStatus`. |
 | CRUD | Favorites: create (save), read (list), update (note), delete (remove). |
@@ -57,6 +57,16 @@ Built for **SE2142 — Software Engineering**, Final Project.
 | ISS tracker | Favorites |
 | :---: | :---: |
 | <img src="docs/screenshots/04-iss.png" width="240" alt="ISS position on a map with live readouts"> | <img src="docs/screenshots/05-favorites.png" width="240" alt="Saved pictures and launches"> |
+
+### Key states and project tracking
+
+| Home loading | Home error | Empty favorites |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/06-home-loading.png" width="240" alt="Home screen while the astronomy picture is loading"> | <img src="docs/screenshots/07-home-error.png" width="240" alt="Home screen showing a timeout error and Retry button"> | <img src="docs/screenshots/08-favorites-empty.png" width="240" alt="Favorites screen empty state"> |
+
+| Favorite note dialog | GitHub Issues |
+| :---: | :---: |
+| <img src="docs/screenshots/09-note-dialog.png" width="240" alt="Dialog for adding a note to a favorite"> | <img src="docs/screenshots/10-github-issues.png" width="800" alt="GitHub Issues page showing open and closed project issues"> |
 
 ## Getting started
 
