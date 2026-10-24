@@ -86,9 +86,10 @@ class _IssMapState extends State<IssMap> {
             initialZoom: 3,
             minZoom: 1,
             maxZoom: 18,
-            // Keep the map on the globe rather than letting it pan into blank
-            // space, which also stops the marker drifting off-screen.
-            cameraConstraint: CameraConstraint.contain(
+            // Keep the camera center on the globe. Containing the full
+            // viewport would prevent the station from being centered near the
+            // edge of the world map on narrow screens.
+            cameraConstraint: CameraConstraint.containCenter(
               bounds: LatLngBounds(
                 const LatLng(-85, -180),
                 const LatLng(85, 180),

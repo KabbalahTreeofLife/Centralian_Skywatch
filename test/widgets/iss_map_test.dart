@@ -95,6 +95,23 @@ void main() {
       expect(currentCamera(tester).zoom, before);
     });
 
+    testWidgets('follows the station near the edge of the world map', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = const Size(440, 956);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await pumpMap(tester, _position(latitude: 0, longitude: 0));
+      await pumpMap(tester, _position(latitude: 21.85, longitude: 148.62));
+      await tester.pump();
+      await pumpMap(tester, _position(latitude: 21.86, longitude: 148.63));
+      await tester.pump();
+
+      expect(currentCamera(tester).center.longitude, closeTo(148.63, 0.01));
+    });
+
     group('OpenStreetMap tile policy', () {
       testWidgets('uses the exact tile URL the policy requires', (
         WidgetTester tester,
