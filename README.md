@@ -1,8 +1,14 @@
 # Centralian Skywatch
 
+<p align="center">
+  <img src="assets/icon/app_icon.png" alt="Centralian Skywatch app icon" width="180">
+</p>
+
 [![CI](https://github.com/KabbalahTreeofLife/Centralian_Skywatch/actions/workflows/ci.yml/badge.svg)](https://github.com/KabbalahTreeofLife/Centralian_Skywatch/actions/workflows/ci.yml)
 ![Flutter](https://img.shields.io/badge/Flutter-3.44.9-02569B?logo=flutter&logoColor=white)
 ![Dart](https://img.shields.io/badge/Dart-3.12.2-0175C2?logo=dart&logoColor=white)
+
+## Description
 
 Centralian Skywatch brings today's astronomy picture, upcoming rocket launches
 and live ISS tracking together in one Flutter app, with a favourites list that
@@ -68,7 +74,7 @@ Built for **SE2142 — Software Engineering**, Final Project.
 | :---: | :---: |
 | <img src="docs/screenshots/09-note-dialog.png" width="240" alt="Dialog for adding a note to a favorite"> | <img src="docs/screenshots/10-github-issues.png" width="800" alt="GitHub Issues page showing open and closed project issues"> |
 
-## Getting started
+## Installation
 
 **Requirements:** Flutter 3.44.9 (stable) or later, and Dart 3.12.2.
 
@@ -94,6 +100,20 @@ there can be extracted from a build you share.
 hour, 50 per day per IP), so a personal key from
 <https://api.nasa.gov/> is recommended for demos. A free key is available at the
 same address.
+
+## Usage
+
+Start the app on a connected device, emulator, or desktop target:
+
+```powershell
+flutter run
+```
+
+To run the automated test suite:
+
+```powershell
+flutter test
+```
 
 ## Packages used
 
@@ -268,3 +288,22 @@ contributors, used under the
 
 **Marco Daniel S. Castillo** — all roles (individual project):
 [github.com/KabbalahTreeOfLife](https://github.com/KabbalahTreeOfLife)
+
+## Contributing
+
+This is an individual course project. Suggestions and bug reports are welcome
+through [GitHub Issues](https://github.com/KabbalahTreeofLife/Centralian_Skywatch/issues).
+For code contributions, open an issue first to discuss the change, then submit
+a pull request with the relevant tests passing.
+
+## License
+
+No license is currently included in this repository. Contact the maintainer
+before reusing or redistributing the project.
+
+## Contact
+
+For questions or support, open a
+[GitHub Issue](https://github.com/KabbalahTreeofLife/Centralian_Skywatch/issues)
+or contact the maintainer through
+[GitHub](https://github.com/KabbalahTreeOfLife).
