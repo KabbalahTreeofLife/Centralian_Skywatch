@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon/app_icon.png" alt="Centralian Skywatch app icon" width="160" style="border-radius: 50%;">
+  <img src="assets/icon/app_icon_circular.png" alt="Centralian Skywatch app icon" width="160">
 </p>
 
 # Centralian Skywatch [![CI](https://github.com/KabbalahTreeofLife/Centralian_Skywatch/actions/workflows/ci.yml/badge.svg)](https://github.com/KabbalahTreeofLife/Centralian_Skywatch/actions/workflows/ci.yml) ![Flutter](https://img.shields.io/badge/Flutter-3.44.9-02569B?logo=flutter&logoColor=white) ![Dart](https://img.shields.io/badge/Dart-3.12.2-0175C2?logo=dart&logoColor=white)
