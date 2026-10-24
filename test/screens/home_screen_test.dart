@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -98,6 +100,40 @@ void main() {
       find.textContaining('A picture of something far away.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('shows a loading state while the APOD request is pending', (
+    WidgetTester tester,
+  ) async {
+    final Completer<http.Response> response = Completer<http.Response>();
+    final ApiClient client = ApiClient(
+      client: MockClient((http.Request request) => response.future),
+    );
+    final FavoritesProvider favorites = FavoritesProvider();
+    await favorites.load();
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<ApodProvider>(
+            create: (_) => ApodProvider(
+              service: ApodService(apiKey: 'TEST', client: client),
+            ),
+          ),
+          ChangeNotifierProvider<FavoritesProvider>.value(value: favorites),
+        ],
+        child: const MaterialApp(home: HomeScreen()),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text("Loading today's picture…"), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    response.complete(http.Response(_imageApodJson, 200));
+    await tester.pumpAndSettle();
+
+    expect(find.text('The First Green Star'), findsOneWidget);
   });
 
   testWidgets('omits the credit when NASA owns the picture', (
