@@ -13,16 +13,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Same pinned version as ci.yml, so both workflows build with one toolchain.
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: 3.44.9
           channel: stable
           cache: true
 
+      # This IPA is published as a public pre-release, and pubspec.yaml bundles
+      # .env as an asset, so anything written here can be extracted from the
+      # download. Use the placeholder key rather than the repository secret.
       - name: Create env file
-        run: |
-          printf 'NASA_API_KEY=%s\n' "${NASA_API_KEY:-DEMO_KEY}" > .env
-        env:
-          NASA_API_KEY: ${{ secrets.NASA_API_KEY }}
+        run: cp .env.example .env
 
       - run: flutter pub get
 
