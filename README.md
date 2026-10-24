@@ -62,7 +62,4 @@ For questions or support, open a
 or contact the maintainer through
 [GitHub](https://github.com/KabbalahTreeOfLife).
 
-## Member and role
-
-**Marco Daniel S. Castillo** — all roles (individual project):
-[github.com/KabbalahTreeOfLife](https://github.com/KabbalahTreeOfLife)
+[**Marco Daniel S. Castillo**](https://github.com/KabbalahTreeofLife) — Solo developer and maintainer.
