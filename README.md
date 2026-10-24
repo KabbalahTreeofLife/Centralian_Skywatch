@@ -109,7 +109,8 @@ same address.
 | `url_launcher` | ^6.3.3 | Opening APOD video entries and source links |
 
 Dev tooling: `flutter_lints`, `flutter_launcher_icons` and `flutter_native_splash`,
-used for the release icon and splash.
+configured to generate the Android launcher icon and splash from
+`assets/icon/app_icon.png`.
 
 ## Architecture
 
@@ -200,21 +201,56 @@ including on narrow screens.
 
 ## Release build
 
-Debug and release APKs share the same entry point; only signing and
-optimisation differ.
+Generate the Android launcher icon and splash after changing their source image
+or configuration:
+
+```powershell
+dart run flutter_launcher_icons
+dart run flutter_native_splash:create
+```
+
+Debug and release APKs share the same entry point; the release build is
+optimised. Release signing uses the private keystore configured in
+`android/key.properties` when present. Without that file, Gradle uses the
+debug key so a local demo build can still be produced; do not distribute that
+APK as a store release.
 
 ```powershell
 # Debug — debuggable, unoptimised, signed with the debug key
 flutter build apk --debug
 # build/app/outputs/flutter-apk/app-debug.apk
 
-# Release — optimised and signed, for the demo build
+# Release — optimised; signed with your private key if configured
 flutter build apk --release
 # build/app/outputs/flutter-apk/app-release.apk
 ```
 
+To configure a private Android release key, create a keystore locally and keep
+it backed up securely:
+
+```powershell
+keytool -genkeypair -v -keystore android/upload-keystore.jks `
+  -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+Create `android/key.properties` with the values for that key. `storeFile` is
+relative to the `android` directory:
+
+```properties
+storePassword=<your-store-password>
+keyPassword=<your-key-password>
+keyAlias=upload
+storeFile=upload-keystore.jks
+```
+
+Both `android/key.properties` and keystore files are ignored by Git. Never
+commit or share them; losing the keystore can prevent future updates signed
+with that key.
+
 Install on a connected device with `flutter install`, or copy the release APK to
-the device and open it.
+the device and open it. The release APK was manually verified on an Android
+device: it installed with the configured signing, showed the custom launcher
+icon, and loaded Home, Launches and ISS data from their APIs.
 
 ## Data sources
 
