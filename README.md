@@ -25,7 +25,7 @@ Built for **SE2142 — Software Engineering**, Final Project.
 | Loading, error and empty handling | Three shared widgets used on three screens each. Offline is named separately from a generic failure. |
 | Reusable widgets on more than one screen | `LoadingView`, `ErrorRetryView` and `EmptyStateView` — three, each on Home, Launches and ISS or Favorites. `LaunchImage` is also shared by the launch card and the detail header. |
 | Themed, custom UI | Material 3, fidelity scheme, bundled Inter and Space Grotesk variable fonts. |
-| Automated tests | 225 tests across 27 files. |
+| Automated tests | 227 tests across 27 files. |
 | Static analysis and formatting | `flutter analyze --fatal-infos` clean; `dart format` clean. |
 | Continuous integration | Three gates on every pull request; `main` is protected. |
 | Version control workflow | Feature branches merged through pull requests: 27 merged, 4 carrying review comments. |
@@ -150,12 +150,21 @@ weight comes from a single asset and nothing is fetched at runtime.
 
 ## Testing
 
-225 tests across 27 files. `flutter test`.
+227 tests across 27 files. `flutter test`.
 
 Unit tests cover models and JSON parsing, `ApiClient` retry and error mapping,
-and each provider's load, retry and caching behaviour. Widget tests cover every
-screen's loading, error, empty and offline states. A navigation test walks the
+and each provider's load, retry and caching behaviour. HTTP tests use
+`MockClient` to cover success, non-retried 4xx responses, retried 5xx
+responses, request timeouts, and `SocketException` mapping without live network
+calls. Home widget tests cover the pending-request loading indicator, loaded
+APOD content, and error/retry behavior. Widget tests also cover the other
+screens' loading, error, empty, and offline states. A navigation test walks the
 tabs and confirms tab state is preserved.
+
+Latest verification for issue #13: `flutter test` passed all 227 tests;
+`flutter analyze --fatal-infos` reported no issues; and
+`dart format --output=none --set-exit-if-changed .` completed with no files
+changed.
 
 ## Continuous integration
 
