@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon/app_icon.png" alt="Centralian Skywatch app icon" width="160">
+  <img src="assets/icon/app_icon.png" alt="Centralian Skywatch app icon" width="160" style="border-radius: 50%;">
 </p>
 
 # Centralian Skywatch [![CI](https://github.com/KabbalahTreeofLife/Centralian_Skywatch/actions/workflows/ci.yml/badge.svg)](https://github.com/KabbalahTreeofLife/Centralian_Skywatch/actions/workflows/ci.yml) ![Flutter](https://img.shields.io/badge/Flutter-3.44.9-02569B?logo=flutter&logoColor=white) ![Dart](https://img.shields.io/badge/Dart-3.12.2-0175C2?logo=dart&logoColor=white)
@@ -61,3 +61,8 @@ For questions or support, open a
 [GitHub Issue](https://github.com/KabbalahTreeofLife/Centralian_Skywatch/issues)
 or contact the maintainer through
 [GitHub](https://github.com/KabbalahTreeOfLife).
+
+## Member and role
+
+**Marco Daniel S. Castillo** — all roles (individual project):
+[github.com/KabbalahTreeOfLife](https://github.com/KabbalahTreeOfLife)
