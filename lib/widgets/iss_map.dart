@@ -31,6 +31,14 @@ class _IssMapState extends State<IssMap> {
   /// Set once a tile fails, which switches the map to its fallback background.
   bool _tilesFailed = false;
 
+  /// Lets the map follow the station.
+  ///
+  /// `MapOptions.initialCenter` is read once, when the map is created, so a
+  /// later position would move the marker but not the camera. The station
+  /// covers about 7.7 km every second, so without this it drifts out of view
+  /// after a few refreshes.
+  final MapController _controller = MapController();
+
   @override
   void didUpdateWidget(IssMap oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -38,7 +46,25 @@ class _IssMapState extends State<IssMap> {
     if (oldWidget.position.latitude != widget.position.latitude ||
         oldWidget.position.longitude != widget.position.longitude) {
       _tilesFailed = false;
+
+      final LatLng point = LatLng(
+        widget.position.latitude,
+        widget.position.longitude,
+      );
+      // Moving the camera while the tree is rebuilding would ask the map to
+      // rebuild itself mid-build, so wait for the frame to finish. The zoom is
+      // kept, so a reader who zoomed in stays zoomed in.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _controller.move(point, _controller.camera.zoom);
+      });
     }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -54,6 +80,7 @@ class _IssMapState extends State<IssMap> {
         if (_tilesFailed)
           Container(color: theme.colorScheme.surfaceContainerHighest),
         FlutterMap(
+          mapController: _controller,
           options: MapOptions(
             initialCenter: point,
             initialZoom: 3,

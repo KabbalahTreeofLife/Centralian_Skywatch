@@ -159,5 +159,52 @@ void main() {
       expect(provider.count, 1);
       expect(provider.items.single.title, 'NASA Science');
     });
+
+    test('changes started together are not lost', () async {
+      // Two quick taps both begin before either write has finished. Each
+      // change must start from the list the previous one left, otherwise the
+      // second write discards the first.
+      final FavoritesProvider provider = FavoritesProvider();
+      await provider.load();
+
+      final List<bool> results = await Future.wait(<Future<bool>>[
+        provider.add(_apod),
+        provider.add(_launch),
+      ]);
+
+      expect(results, <bool>[true, true]);
+      expect(provider.count, 2);
+
+      final FavoritesProvider restarted = FavoritesProvider();
+      await restarted.load();
+      expect(restarted.count, 2);
+    });
+
+    test('remove and updateNote report whether anything changed', () async {
+      final FavoritesProvider provider = FavoritesProvider();
+      await provider.load();
+      await provider.add(_apod);
+
+      expect(
+        await provider.updateNote(FavoriteType.apod, '2026-10-22', 'Look up'),
+        isTrue,
+      );
+      expect(
+        await provider.updateNote(FavoriteType.apod, 'gone', 'x'),
+        isFalse,
+      );
+      expect(await provider.remove(FavoriteType.apod, 'gone'), isFalse);
+      expect(await provider.remove(FavoriteType.apod, '2026-10-22'), isTrue);
+    });
+
+    test('toggle reports that the change was saved', () async {
+      final FavoritesProvider provider = FavoritesProvider();
+      await provider.load();
+
+      expect(await provider.toggle(_apod), isTrue);
+      expect(provider.count, 1);
+      expect(await provider.toggle(_apod), isTrue);
+      expect(provider.isEmpty, isTrue);
+    });
   });
 }

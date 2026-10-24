@@ -25,7 +25,7 @@ Built for **SE2142 — Software Engineering**, Final Project.
 | Loading, error and empty handling | Three shared widgets used on three screens each. Offline is named separately from a generic failure. |
 | Reusable widgets on more than one screen | `LoadingView`, `ErrorRetryView` and `EmptyStateView` — three, each on Home, Launches and ISS or Favorites. `LaunchImage` is also shared by the launch card and the detail header. |
 | Themed, custom UI | Material 3, fidelity scheme, bundled Inter and Space Grotesk variable fonts. |
-| Automated tests | 216 tests across 26 files. |
+| Automated tests | 225 tests across 27 files. |
 | Static analysis and formatting | `flutter analyze --fatal-infos` clean; `dart format` clean. |
 | Continuous integration | Three gates on every pull request; `main` is protected. |
 | Version control workflow | Feature branches merged through pull requests: 27 merged, 4 carrying review comments. |
@@ -65,12 +65,16 @@ Built for **SE2142 — Software Engineering**, Final Project.
 ```powershell
 git clone https://github.com/KabbalahTreeofLife/Centralian_Skywatch.git
 cd Centralian_Skywatch
-Copy-Item .env.example .env     # optional
+Copy-Item .env.example .env     # required: pubspec.yaml bundles it as an asset
 flutter pub get
 flutter run
 ```
 
-`.env` is gitignored, so no key is committed. The app runs without it.
+`.env` is gitignored, so no key is committed. The file has to exist or the
+build fails on the missing asset, but what is in it is optional: the copied
+placeholder uses NASA's `DEMO_KEY`, and the app also falls back to that key if
+the value is blank. Anything in `.env` is bundled into the app, so a key placed
+there can be extracted from a build you share.
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
@@ -136,7 +140,7 @@ weight comes from a single asset and nothing is fetched at runtime.
 
 ## Testing
 
-216 tests across 26 files. `flutter test`.
+225 tests across 27 files. `flutter test`.
 
 Unit tests cover models and JSON parsing, `ApiClient` retry and error mapping,
 and each provider's load, retry and caching behaviour. Widget tests cover every

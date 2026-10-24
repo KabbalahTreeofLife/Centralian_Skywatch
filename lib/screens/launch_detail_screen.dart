@@ -8,6 +8,7 @@ import '../models/launch.dart';
 import '../providers/favorites_provider.dart';
 import '../utils/countdown.dart';
 import '../utils/date_format.dart';
+import '../widgets/favorite_feedback.dart';
 import '../widgets/launch_image.dart';
 
 /// Detail screen pushed on top of the shell.
@@ -349,13 +350,17 @@ class _FavoriteButton extends StatelessWidget {
     final bool saved = favorites.contains(FavoriteType.launch, launch.id);
 
     return FilledButton.tonalIcon(
-      onPressed: () => favorites.toggle(
-        FavoriteItem(
-          id: launch.id,
-          type: FavoriteType.launch,
-          title: launch.name,
-        ),
-      ),
+      onPressed: () async {
+        final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+        final bool ok = await favorites.toggle(
+          FavoriteItem(
+            id: launch.id,
+            type: FavoriteType.launch,
+            title: launch.name,
+          ),
+        );
+        if (!ok) showFavoriteSaveError(messenger);
+      },
       icon: Icon(saved ? Icons.favorite : Icons.favorite_border),
       label: Text(saved ? 'Saved to favorites' : 'Save to favorites'),
     );

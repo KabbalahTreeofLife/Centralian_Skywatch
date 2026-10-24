@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/favorite_item.dart';
 import '../providers/favorites_provider.dart';
+import '../widgets/favorite_feedback.dart';
 import '../widgets/load_state_views.dart';
 
 /// Favorites tab: saved APOD entries and launches with personal notes.
@@ -143,19 +144,27 @@ class _FavoriteTile extends StatelessWidget {
     BuildContext context,
     FavoritesProvider provider,
   ) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
     final String? note = await showDialog<String>(
       context: context,
       builder: (BuildContext context) => _NoteDialog(initialNote: item.note),
     );
     if (note == null) return;
 
-    await provider.updateNote(item.type, item.id, note);
+    final bool saved = await provider.updateNote(item.type, item.id, note);
+    // False also means the favorite was deleted while the dialog was open,
+    // which is not a storage failure, so only a favorite that is still there
+    // counts as one.
+    if (!saved && provider.contains(item.type, item.id)) {
+      showFavoriteSaveError(messenger);
+    }
   }
 
   Future<void> _confirmDelete(
     BuildContext context,
     FavoritesProvider provider,
   ) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
@@ -175,7 +184,11 @@ class _FavoriteTile extends StatelessWidget {
     );
     if (confirmed != true) return;
 
-    await provider.remove(item.type, item.id);
+    final bool removed = await provider.remove(item.type, item.id);
+    // Still present after a false result means storage rejected the removal.
+    if (!removed && provider.contains(item.type, item.id)) {
+      showFavoriteSaveError(messenger);
+    }
   }
 }
 
