@@ -129,7 +129,7 @@ flutter test
 | `url_launcher` | ^6.3.3 | Opening APOD video entries and source links |
 
 Dev tooling: `flutter_lints`, `flutter_launcher_icons` and `flutter_native_splash`,
-configured to generate the Android launcher icon and splash from
+configured to generate the Android and iOS launcher icons and Android splash from
 `assets/icon/app_icon.png`.
 
 ## Architecture
@@ -221,8 +221,8 @@ including on narrow screens.
 
 ## Release build
 
-Generate the Android launcher icon and splash after changing their source image
-or configuration:
+Generate the launcher icons and Android splash after changing their source
+image or configuration:
 
 ```powershell
 dart run flutter_launcher_icons
@@ -271,6 +271,11 @@ Install on a connected device with `flutter install`, or copy the release APK to
 the device and open it. The release APK was manually verified on an Android
 device: it installed with the configured signing, showed the custom launcher
 icon, and loaded Home, Launches and ISS data from their APIs.
+
+For iOS, run the **iOS-ipa-build** workflow from the updated `main` branch in
+GitHub Actions, then install that newly built IPA. Existing iPhone installs do
+not update when the source icon or display name changes; install the new build
+over the old one using the same signing method.
 
 ## Data sources
 
