@@ -96,5 +96,65 @@ void main() {
 
       await expectLater(service.fetchToday(), throwsA(isA<ServerException>()));
     });
+
+    test('extracts a NASA-hosted video source from the APOD HTML', () async {
+      final ApodService service = ApodService(
+        apiKey: 'TEST_KEY',
+        client: ApiClient(
+          client: MockClient((http.Request request) async {
+            if (request.url.path.endsWith('/html')) {
+              return http.Response(
+                '<video><source src="https://assets.science.nasa.gov/video.mp4" '
+                'type="video/mp4"></video>',
+                200,
+              );
+            }
+            return http.Response('''
+              [{
+                "date":"2026-10-28",
+                "title":"Video APOD",
+                "media_type":"video",
+                "hdurl":"https://assets.science.nasa.gov/poster.jpg",
+                "basic_html_url":"https://science.nasa.gov/wp-json/apod/261028/html"
+              }]
+              ''', 200);
+          }),
+        ),
+      );
+
+      final Apod apod = await service.fetchToday();
+
+      expect(apod.isVideo, isTrue);
+      expect(apod.videoUrl, 'https://assets.science.nasa.gov/video.mp4');
+    });
+
+    test('ignores a video source hosted outside NASA', () async {
+      final ApodService service = ApodService(
+        apiKey: 'TEST_KEY',
+        client: ApiClient(
+          client: MockClient((http.Request request) async {
+            if (request.url.path.endsWith('/html')) {
+              return http.Response(
+                '<video><source src="https://attacker.example/video.mp4"></video>',
+                200,
+              );
+            }
+            return http.Response('''
+              [{
+                "date":"2026-10-28",
+                "title":"Video APOD",
+                "media_type":"video",
+                "basic_html_url":"https://science.nasa.gov/wp-json/apod/261028/html"
+              }]
+              ''', 200);
+          }),
+        ),
+      );
+
+      final Apod apod = await service.fetchToday();
+
+      expect(apod.isVideo, isTrue);
+      expect(apod.videoUrl, isNull);
+    });
   });
 }

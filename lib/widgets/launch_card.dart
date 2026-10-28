@@ -7,6 +7,7 @@ import '../providers/favorites_provider.dart';
 import '../utils/countdown.dart';
 import '../utils/date_format.dart';
 import 'favorite_feedback.dart';
+import 'image_preview.dart';
 import 'launch_image.dart';
 
 /// One upcoming launch, as a tappable card.
@@ -58,25 +59,36 @@ class LaunchCard extends StatelessWidget {
                   width: double.infinity,
                   child: Hero(
                     tag: 'launch-hero-${launch.id}',
-                    child: LaunchImage(
-                      url: launch.imageUrl,
-                      semanticLabel: 'Rocket for ${launch.name}',
+                    child: GestureDetector(
+                      onTap: launch.imageUrl == null
+                          ? null
+                          : () => showImagePreview(
+                              context,
+                              url: launch.imageUrl!,
+                              semanticLabel: 'Rocket for ${launch.name}',
+                            ),
+                      child: LaunchImage(
+                        url: launch.imageUrl,
+                        semanticLabel: 'Rocket for ${launch.name}',
+                      ),
                     ),
                   ),
                 ),
                 // Scrim: the chips sit on the photo, so they need a base.
                 Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: <Color>[
-                          scheme.surface.withValues(alpha: 0.55),
-                          Colors.transparent,
-                          scheme.surface.withValues(alpha: 0.35),
-                        ],
-                        stops: const <double>[0, 0.45, 1],
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: <Color>[
+                            scheme.surface.withValues(alpha: 0.55),
+                            Colors.transparent,
+                            scheme.surface.withValues(alpha: 0.35),
+                          ],
+                          stops: const <double>[0, 0.45, 1],
+                        ),
                       ),
                     ),
                   ),
@@ -245,6 +257,7 @@ class _FavoriteToggle extends StatelessWidget {
             id: launch.id,
             type: FavoriteType.launch,
             title: launch.name,
+            data: launch.toJson(),
           ),
         );
         if (!ok) showFavoriteSaveError(messenger);

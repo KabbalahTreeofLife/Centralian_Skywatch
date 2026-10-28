@@ -203,4 +203,15 @@ void main() {
       );
     });
   });
+
+  group('ApiClient.getText', () {
+    test('returns a successful response body without JSON decoding', () async {
+      final ApiClient api = _clientReturning(
+        (http.Request request) async =>
+            http.Response('<video><source src="clip.mp4"></video>', 200),
+      );
+
+      expect(await api.getText(_uri), '<video><source src="clip.mp4"></video>');
+    });
+  });
 }

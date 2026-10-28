@@ -13,6 +13,7 @@ import 'package:centralian_skywatch/providers/favorites_provider.dart';
 import 'package:centralian_skywatch/screens/home_screen.dart';
 import 'package:centralian_skywatch/services/api_client.dart';
 import 'package:centralian_skywatch/services/apod_service.dart';
+import 'package:centralian_skywatch/widgets/apod_image.dart';
 
 /// A real entry, in the array shape the feed returns.
 const String _imageApodJson =
@@ -145,14 +146,54 @@ void main() {
     expect(find.textContaining('©'), findsNothing);
   });
 
-  testWidgets('a video entry shows its still frame and a watch button', (
+  testWidgets('a video entry shows its still frame and an external fallback', (
     WidgetTester tester,
   ) async {
     await pumpHome(tester, body: _videoApodJson);
 
     // The feed sends a poster frame for videos, so the picture is shown.
     expect(find.text('A Launch Video'), findsOneWidget);
-    expect(find.text('Watch video'), findsOneWidget);
+    expect(find.text('Watch on NASA'), findsOneWidget);
+  });
+
+  testWidgets('tapping the APOD image opens a zoomable preview', (
+    WidgetTester tester,
+  ) async {
+    await pumpHome(tester, body: _imageApodJson);
+
+    await tester.tap(find.byType(ApodImage));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+    expect(find.byTooltip('Close image'), findsOneWidget);
+  });
+
+  testWidgets('video entries use the in-app player when a source is known', (
+    WidgetTester tester,
+  ) async {
+    const String videoWithSource =
+        '[{"date":"2026-10-21","title":"A Launch Video","media_type":"video",'
+        '"permalink":"https://science.nasa.gov/apod/",'
+        '"hdurl":"https://example.test/video-still.jpg",'
+        '"video_url":"https://assets.science.nasa.gov/video.mp4",'
+        '"explanation":"A video entry."}]';
+
+    await pumpHome(tester, body: videoWithSource);
+
+    expect(find.text('Play video'), findsOneWidget);
+    await tester.tap(find.text('Play video'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(Dialog),
+        matching: find.text('A Launch Video'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Open on NASA'), findsOneWidget);
   });
 
   testWidgets('an entry with no picture shows a notice', (

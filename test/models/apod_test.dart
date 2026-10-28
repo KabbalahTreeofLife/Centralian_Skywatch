@@ -130,7 +130,7 @@ void main() {
 
     test('a video entry still carries a still frame', () {
       // The feed gives video entries a poster image in hdurl, so the picture
-      // is shown and the button opens the page to play it.
+      // is shown independently from its playable video source.
       final Apod apod = Apod.fromJson(<String, dynamic>{
         'title': 'Sonified: Eagle Nebula Pillars',
         'media_type': 'video',
@@ -187,6 +187,29 @@ void main() {
       });
 
       expect(apod.date, '2026-10-22');
+    });
+
+    test('round-trips saved details and video URL through JSON', () {
+      const Apod original = Apod(
+        title: 'Saved entry',
+        explanation: 'A paragraph.',
+        paragraphs: <String>['A paragraph.'],
+        tomorrowTeaser: "Tomorrow's picture: a nebula",
+        mediaType: 'video',
+        date: '2026-10-22',
+        imageUrl: 'https://assets.science.nasa.gov/poster.jpg',
+        videoUrl: 'https://assets.science.nasa.gov/video.mp4',
+        permalink: 'https://science.nasa.gov/apod/',
+      );
+
+      final Apod restored = Apod.fromJson(original.toJson());
+
+      expect(restored.title, original.title);
+      expect(restored.paragraphs, original.paragraphs);
+      expect(restored.tomorrowTeaser, original.tomorrowTeaser);
+      expect(restored.imageUrl, original.imageUrl);
+      expect(restored.videoUrl, original.videoUrl);
+      expect(restored.permalink, original.permalink);
     });
   });
 

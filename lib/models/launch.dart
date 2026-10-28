@@ -51,4 +51,20 @@ class Launch {
       imageUrl: readStringOrNull(json['image']),
     );
   }
+
+  /// JSON snapshot used to restore this launch from the favorites list.
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'name': name,
+    'net': net?.toIso8601String(),
+    'status': <String, dynamic>{
+      'name': statusName,
+      'description': statusDescription,
+    },
+    'lsp_name': agency,
+    'mission_type': missionType,
+    'pad': padName,
+    'location': locationName,
+    'image': imageUrl,
+  };
 }

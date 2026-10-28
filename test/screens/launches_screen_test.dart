@@ -16,6 +16,7 @@ import 'package:centralian_skywatch/screens/launches_screen.dart';
 import 'package:centralian_skywatch/services/api_client.dart';
 import 'package:centralian_skywatch/services/launch_service.dart';
 import 'package:centralian_skywatch/widgets/launch_card.dart';
+import 'package:centralian_skywatch/widgets/launch_image.dart';
 import 'package:centralian_skywatch/widgets/load_state_views.dart';
 
 /// A launch that is a few hours away, so it shows a countdown.
@@ -171,6 +172,25 @@ void main() {
     expect(find.text('Arianespace'), findsOneWidget);
   });
 
+  testWidgets('tapping a rocket image opens a zoomable preview', (
+    WidgetTester tester,
+  ) async {
+    await pumpLaunches(
+      tester,
+      body: _body(<Map<String, dynamic>>[_soonLaunch()]),
+    );
+
+    await tester.tap(find.byType(LaunchImage));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+    expect(find.byTooltip('Close image'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Close image'));
+    await tester.pump(const Duration(milliseconds: 300));
+  });
+
   testWidgets('shows a countdown for a launch that is close', (
     WidgetTester tester,
   ) async {
@@ -262,7 +282,7 @@ void main() {
       body: _body(<Map<String, dynamic>>[_soonLaunch()]),
     );
 
-    await tester.tap(find.byType(LaunchCard));
+    await tester.tap(find.text('Falcon 9 Block 5 | Starlink Group 15-15'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 

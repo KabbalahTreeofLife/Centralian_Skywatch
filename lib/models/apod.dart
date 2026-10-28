@@ -13,6 +13,7 @@ class Apod {
     this.tomorrowTeaser,
     this.date = '',
     this.imageUrl,
+    this.videoUrl,
     this.permalink,
     this.credit,
     this.alt,
@@ -52,6 +53,9 @@ class Apod {
   /// here, which is what the list and detail views show.
   final String? imageUrl;
 
+  /// Direct playable media URL for supported video entries.
+  final String? videoUrl;
+
   /// Link to the entry's page on science.nasa.gov.
   final String? permalink;
 
@@ -68,17 +72,29 @@ class Apod {
   bool get hasImage => imageUrl != null;
 
   factory Apod.fromJson(Map<String, dynamic> json) {
-    final List<String> parts = splitHtmlParagraphs(json['explanation'])
-        .map(stripExplanationLabel)
-        .where((String part) => part.isNotEmpty)
-        .toList(growable: false);
+    final Object? storedParagraphs = json['paragraphs'];
+    final List<String> parts = storedParagraphs is List
+        ? storedParagraphs
+              .whereType<String>()
+              .map(stripExplanationLabel)
+              .where((String part) => part.isNotEmpty)
+              .toList(growable: false)
+        : splitHtmlParagraphs(json['explanation'])
+              .map(stripExplanationLabel)
+              .where((String part) => part.isNotEmpty)
+              .toList(growable: false);
 
     // The feed ends the explanation with a note about the next entry. It is not
     // part of this one, so it is pulled out and shown on its own.
-    final String? teaser = _teaserFrom(parts);
-    final List<String> paragraphs = teaser == null
-        ? parts
-        : parts.sublist(0, parts.length - 1);
+    final String? teaser =
+        readStringOrNull(json['tomorrow_teaser']) ?? _teaserFrom(parts);
+    final bool hasInlineTeaser =
+        teaser != null &&
+        parts.isNotEmpty &&
+        parts.last.toLowerCase().startsWith("tomorrow's picture");
+    final List<String> paragraphs = hasInlineTeaser
+        ? parts.sublist(0, parts.length - 1)
+        : parts;
 
     return Apod(
       title: readString(
@@ -91,11 +107,27 @@ class Apod {
       mediaType: readString(json['media_type'], fallback: 'image'),
       date: readString(json['date']),
       imageUrl: sizedImageUrl(readStringOrNull(json['hdurl'])),
+      videoUrl: readStringOrNull(json['video_url']),
       permalink: readStringOrNull(json['permalink']),
       credit: readStringOrNull(stripHtml(json['credit'])),
       alt: readStringOrNull(stripHtml(json['alt'])),
     );
   }
+
+  /// JSON snapshot used to restore this entry from the favorites list.
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'title': title,
+    'explanation': explanation,
+    'paragraphs': paragraphs,
+    'tomorrow_teaser': tomorrowTeaser,
+    'media_type': mediaType,
+    'date': date,
+    'hdurl': imageUrl,
+    'video_url': videoUrl,
+    'permalink': permalink,
+    'credit': credit,
+    'alt': alt,
+  };
 
   /// Returns the trailing `Tomorrow's picture:` note, or null when absent.
   static String? _teaserFrom(List<String> parts) {
