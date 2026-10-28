@@ -57,8 +57,21 @@ class ApiClient {
     return decoded;
   }
 
+  /// Performs a GET and returns the successful response body as text.
+  ///
+  /// Used for NASA's APOD HTML fragments, which contain the playable video
+  /// source but are not JSON.
+  Future<String> getText(Uri uri) async {
+    final http.Response response = await _getResponse(uri);
+    return response.body;
+  }
+
   /// Runs the request with retries and returns the decoded JSON body.
-  Future<Object?> _getDecoded(Uri uri) async {
+  Future<Object?> _getDecoded(Uri uri) async =>
+      _decodeResponse(await _getResponse(uri));
+
+  /// Runs the request with retries and returns a successful HTTP response.
+  Future<http.Response> _getResponse(Uri uri) async {
     for (int attempt = 1; ; attempt++) {
       final http.Response response;
       try {
@@ -94,9 +107,12 @@ class ApiClient {
         );
       }
 
-      return _decode(response.body, response.statusCode);
+      return response;
     }
   }
+
+  Object? _decodeResponse(http.Response response) =>
+      _decode(response.body, response.statusCode);
 
   /// Whether a status is worth trying again.
   ///

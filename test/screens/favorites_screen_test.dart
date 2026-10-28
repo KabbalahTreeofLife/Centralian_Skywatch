@@ -6,11 +6,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:centralian_skywatch/models/favorite_item.dart';
 import 'package:centralian_skywatch/providers/favorites_provider.dart';
 import 'package:centralian_skywatch/screens/favorites_screen.dart';
+import 'package:centralian_skywatch/screens/home_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 const FavoriteItem _launch = FavoriteItem(
   id: 'a',
   type: FavoriteType.launch,
   title: 'Falcon 9 | Test',
+  data: <String, dynamic>{
+    'id': 'a',
+    'name': 'Falcon 9 | Test',
+    'status': <String, dynamic>{'name': 'Go for Launch'},
+    'lsp_name': 'SpaceX',
+    'mission_type': 'Communications',
+    'pad': 'Pad 1',
+    'location': 'Florida',
+    'image': 'https://example.test/rocket.jpg',
+  },
 );
 
 /// Pumps the Favorites screen over a provider holding [items].
@@ -125,7 +137,9 @@ void main() {
       items: <FavoriteItem>[_launch],
     );
 
-    await tester.tap(find.text('Falcon 9 | Test'));
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit note'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.widgetWithText(FilledButton, 'Save'));
@@ -143,7 +157,9 @@ void main() {
       items: <FavoriteItem>[_launch],
     );
 
-    await tester.tap(find.text('Falcon 9 | Test'));
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit note'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField), 'Watch the replay');
@@ -162,7 +178,9 @@ void main() {
       items: <FavoriteItem>[_launch],
     );
 
-    await tester.tap(find.text('Falcon 9 | Test'));
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit note'));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField), 'a' * 250);
@@ -170,5 +188,88 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(provider.items.single.note.length, 200);
+  });
+
+  testWidgets('tapping an APOD favorite opens its saved details', (
+    WidgetTester tester,
+  ) async {
+    await pumpScreen(
+      tester,
+      items: <FavoriteItem>[
+        const FavoriteItem(
+          id: '2026-10-22',
+          type: FavoriteType.apod,
+          title: 'Saved nebula',
+          data: <String, dynamic>{
+            'date': '2026-10-22',
+            'title': 'Saved nebula',
+            'media_type': 'image',
+            'explanation': 'A saved description.',
+            'paragraphs': <String>['A saved description.'],
+            'hdurl': 'https://example.test/nebula.jpg',
+          },
+        ),
+      ],
+    );
+
+    await tester.tap(find.text('Saved nebula'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ApodDetailScreen), findsOneWidget);
+    expect(find.text('A saved description.'), findsOneWidget);
+  });
+
+  testWidgets('tapping a launch favorite opens its saved details', (
+    WidgetTester tester,
+  ) async {
+    await pumpScreen(tester, items: <FavoriteItem>[_launch]);
+
+    await tester.tap(find.text('Falcon 9 | Test'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('Launch Detail'), findsOneWidget);
+    expect(find.text('SpaceX'), findsWidgets);
+    expect(find.text('Florida'), findsOneWidget);
+  });
+
+  testWidgets('favorite thumbnails use the saved image URL', (
+    WidgetTester tester,
+  ) async {
+    await pumpScreen(tester, items: <FavoriteItem>[_launch]);
+
+    final CachedNetworkImage image = tester.widget<CachedNetworkImage>(
+      find.byType(CachedNetworkImage),
+    );
+    expect(image.imageUrl, 'https://example.test/rocket.jpg');
+  });
+
+  testWidgets('legacy favorite without details can still edit its note', (
+    WidgetTester tester,
+  ) async {
+    await pumpScreen(
+      tester,
+      items: <FavoriteItem>[
+        const FavoriteItem(
+          id: 'legacy',
+          type: FavoriteType.apod,
+          title: 'Old favorite',
+        ),
+      ],
+    );
+
+    await tester.tap(find.text('Old favorite'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Details are unavailable for this older favorite.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit note'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Your note'), findsOneWidget);
   });
 }

@@ -8,8 +8,10 @@ import '../providers/apod_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../providers/load_status.dart';
 import '../utils/date_format.dart';
+import '../widgets/apod_video_player.dart';
 import '../widgets/apod_image.dart';
 import '../widgets/favorite_feedback.dart';
+import '../widgets/image_preview.dart';
 import '../widgets/load_state_views.dart';
 
 /// Home tab: NASA's Astronomy Picture of the Day.
@@ -18,6 +20,16 @@ class HomeScreen extends StatefulWidget {
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
+}
+
+/// Displays a saved APOD using the same presentation as the Home tab.
+class ApodDetailScreen extends StatelessWidget {
+  const ApodDetailScreen({super.key, required this.apod});
+
+  final Apod apod;
+
+  @override
+  Widget build(BuildContext context) => _ApodView(apod: apod);
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -168,35 +180,46 @@ class _Hero extends StatelessWidget {
         if (url != null)
           Hero(
             tag: 'apod-hero-${apod.date}',
-            child: ApodImage(url: url, semanticLabel: apod.alt ?? apod.title),
+            child: GestureDetector(
+              onTap: () => showImagePreview(
+                context,
+                url: url,
+                semanticLabel: apod.alt ?? apod.title,
+              ),
+              child: ApodImage(url: url, semanticLabel: apod.alt ?? apod.title),
+            ),
           )
         else
           const _Starfield(),
         // Top scrim: keeps the bar title legible over a bright photograph.
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.center,
-              colors: <Color>[
-                scheme.surface.withValues(alpha: 0.8),
-                Colors.transparent,
-              ],
+        IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.center,
+                colors: <Color>[
+                  scheme.surface.withValues(alpha: 0.8),
+                  Colors.transparent,
+                ],
+              ),
             ),
           ),
         ),
         // Bottom scrim: the title and date sit on a solid base.
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.center,
-              end: Alignment.bottomCenter,
-              colors: <Color>[
-                Colors.transparent,
-                scheme.surface.withValues(alpha: 0.9),
-                scheme.surface,
-              ],
-              stops: const <double>[0, 0.7, 1],
+        IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.center,
+                end: Alignment.bottomCenter,
+                colors: <Color>[
+                  Colors.transparent,
+                  scheme.surface.withValues(alpha: 0.9),
+                  scheme.surface,
+                ],
+                stops: const <double>[0, 0.7, 1],
+              ),
             ),
           ),
         ),
@@ -400,11 +423,22 @@ class _VideoButton extends StatelessWidget {
     return FilledButton.tonalIcon(
       onPressed: () => _open(context),
       icon: const Icon(Icons.play_circle_outline),
-      label: const Text('Watch video'),
+      label: Text(apod.videoUrl == null ? 'Watch on NASA' : 'Play video'),
     );
   }
 
   Future<void> _open(BuildContext context) async {
+    final String? videoUrl = apod.videoUrl;
+    if (videoUrl != null) {
+      await showApodVideoPlayer(
+        context,
+        url: videoUrl,
+        title: apod.title,
+        fallbackUrl: apod.permalink,
+      );
+      return;
+    }
+
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
     final String? link = apod.permalink;
     final Uri? uri = link == null ? null : Uri.tryParse(link);
@@ -437,6 +471,7 @@ class _FavoriteButton extends StatelessWidget {
             id: apod.date,
             type: FavoriteType.apod,
             title: apod.title,
+            data: apod.toJson(),
           ),
         );
         if (!ok) showFavoriteSaveError(messenger);

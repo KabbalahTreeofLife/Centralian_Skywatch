@@ -1,8 +1,15 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/apod.dart';
 import '../models/favorite_item.dart';
+import '../models/launch.dart';
+import '../providers/apod_provider.dart';
 import '../providers/favorites_provider.dart';
+import '../providers/launch_provider.dart';
+import '../screens/home_screen.dart';
+import '../screens/launch_detail_screen.dart';
 import '../widgets/favorite_feedback.dart';
 import '../widgets/load_state_views.dart';
 
@@ -63,29 +70,32 @@ class _FavoriteTile extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final ColorScheme scheme = theme.colorScheme;
     final bool isApod = item.type == FavoriteType.apod;
+    final Object? rawImage = item.data?['hdurl'] ?? item.data?['image'];
+    final String? savedImageUrl = rawImage is String && rawImage.isNotEmpty
+        ? rawImage
+        : null;
+    final String? imageUrl =
+        savedImageUrl ??
+        (isApod
+            ? _currentApod(context, item.id)?.imageUrl
+            : _currentLaunch(context, item.id)?.imageUrl);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => _editNote(context, provider),
+        onTap: () => _openDetails(context),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 14, 4, 14),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: scheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  isApod ? Icons.image_outlined : Icons.rocket_launch_outlined,
-                  size: 22,
-                  color: scheme.onPrimaryContainer,
-                ),
+              _FavoritePhoto(
+                imageUrl: imageUrl,
+                fallbackIcon: isApod
+                    ? Icons.image_outlined
+                    : Icons.rocket_launch_outlined,
+                label: item.title,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -140,6 +150,72 @@ class _FavoriteTile extends StatelessWidget {
     );
   }
 
+  void _openDetails(BuildContext context) {
+    final Map<String, dynamic>? data = item.data;
+    if (item.type == FavoriteType.apod) {
+      final Apod? current = data == null
+          ? _currentApod(context, item.id)
+          : Apod.fromJson(data);
+      if (current == null) {
+        _showLegacyDetailsMessage(context);
+        return;
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (BuildContext context) => ApodDetailScreen(apod: current),
+        ),
+      );
+      return;
+    }
+
+    final Launch? launch = data == null
+        ? _currentLaunch(context, item.id)
+        : Launch.fromJson(data);
+    if (launch == null) {
+      _showLegacyDetailsMessage(context);
+      return;
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: RouteSettings(arguments: launch),
+        builder: (BuildContext context) => const LaunchDetailScreen(),
+      ),
+    );
+  }
+
+  Apod? _currentApod(BuildContext context, String id) {
+    final ApodProvider? provider = Provider.of<ApodProvider?>(
+      context,
+      listen: false,
+    );
+    final Apod? current = provider?.data;
+    return current?.date == id ? current : null;
+  }
+
+  Launch? _currentLaunch(BuildContext context, String id) {
+    final LaunchProvider? provider = Provider.of<LaunchProvider?>(
+      context,
+      listen: false,
+    );
+    for (final Launch launch in provider?.data ?? const <Launch>[]) {
+      if (launch.id == id) return launch;
+    }
+    return null;
+  }
+
+  void _showLegacyDetailsMessage(BuildContext context) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Details are unavailable for this older favorite. '
+            'Save it again from its screen to keep a bookmark.',
+          ),
+        ),
+      );
+  }
+
   Future<void> _editNote(
     BuildContext context,
     FavoritesProvider provider,
@@ -189,6 +265,56 @@ class _FavoriteTile extends StatelessWidget {
     if (!removed && provider.contains(item.type, item.id)) {
       showFavoriteSaveError(messenger);
     }
+  }
+}
+
+class _FavoritePhoto extends StatelessWidget {
+  const _FavoritePhoto({
+    required this.imageUrl,
+    required this.fallbackIcon,
+    required this.label,
+  });
+
+  final String? imageUrl;
+  final IconData fallbackIcon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final String? url = imageUrl;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: SizedBox(
+        width: 64,
+        height: 64,
+        child: url == null
+            ? _placeholder(scheme)
+            : CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+                imageBuilder:
+                    (BuildContext context, ImageProvider<Object> image) =>
+                        Semantics(
+                          label: label,
+                          image: true,
+                          child: Image(image: image, fit: BoxFit.cover),
+                        ),
+                placeholder: (BuildContext context, String url) =>
+                    _placeholder(scheme),
+                errorWidget: (BuildContext context, String url, Object _) =>
+                    _placeholder(scheme),
+              ),
+      ),
+    );
+  }
+
+  Widget _placeholder(ColorScheme scheme) {
+    return ColoredBox(
+      color: scheme.primaryContainer,
+      child: Icon(fallbackIcon, color: scheme.onPrimaryContainer),
+    );
   }
 }
 

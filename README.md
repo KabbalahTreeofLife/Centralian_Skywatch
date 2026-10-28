@@ -5,8 +5,9 @@
 # Centralian Skywatch [![CI](https://github.com/KabbalahTreeofLife/Centralian_Skywatch/actions/workflows/ci.yml/badge.svg)](https://github.com/KabbalahTreeofLife/Centralian_Skywatch/actions/workflows/ci.yml) ![Flutter](https://img.shields.io/badge/Flutter-3.44.9-02569B?logo=flutter&logoColor=white) ![Dart](https://img.shields.io/badge/Dart-3.12.2-0175C2?logo=dart&logoColor=white)
 
 Centralian Skywatch brings NASA's Astronomy Picture of the Day, upcoming
-rocket launches, and live ISS tracking together in one Flutter app. Save
-favorite pictures and launches, with notes that persist across restarts.
+rocket launches, and live ISS tracking together in one Flutter app. Preview
+images, play supported APOD videos, and bookmark favorite pictures and
+launches with notes that persist across restarts.
 
 Built for **SE2142 — Software Engineering**, Final Project. See the
 [project documentation](docs/PROJECT_DOCUMENTATION.md) for screenshots,

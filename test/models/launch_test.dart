@@ -94,5 +94,24 @@ void main() {
 
       expect(launch.net, isNull);
     });
+
+    test('round-trips through the favorites detail snapshot', () {
+      final Launch original = Launch.fromJson(
+        jsonDecode(_sampleJson) as Map<String, dynamic>,
+      );
+
+      final Launch restored = Launch.fromJson(original.toJson());
+
+      expect(restored.id, original.id);
+      expect(restored.name, original.name);
+      expect(restored.net, original.net);
+      expect(restored.statusName, original.statusName);
+      expect(restored.statusDescription, original.statusDescription);
+      expect(restored.agency, original.agency);
+      expect(restored.missionType, original.missionType);
+      expect(restored.padName, original.padName);
+      expect(restored.locationName, original.locationName);
+      expect(restored.imageUrl, original.imageUrl);
+    });
   });
 }

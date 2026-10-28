@@ -9,6 +9,7 @@ import '../providers/favorites_provider.dart';
 import '../utils/countdown.dart';
 import '../utils/date_format.dart';
 import '../widgets/favorite_feedback.dart';
+import '../widgets/image_preview.dart';
 import '../widgets/launch_image.dart';
 
 /// Detail screen pushed on top of the shell.
@@ -98,36 +99,49 @@ class _Detail extends StatelessWidget {
               children: <Widget>[
                 Hero(
                   tag: 'launch-hero-${launch.id}',
-                  child: LaunchImage(
-                    url: launch.imageUrl,
-                    semanticLabel: 'Rocket for ${launch.name}',
+                  child: GestureDetector(
+                    onTap: launch.imageUrl == null
+                        ? null
+                        : () => showImagePreview(
+                            context,
+                            url: launch.imageUrl!,
+                            semanticLabel: 'Rocket for ${launch.name}',
+                          ),
+                    child: LaunchImage(
+                      url: launch.imageUrl,
+                      semanticLabel: 'Rocket for ${launch.name}',
+                    ),
                   ),
                 ),
                 // Top scrim: keeps the bar title legible over the photo.
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.center,
-                      colors: <Color>[
-                        scheme.surface.withValues(alpha: 0.8),
-                        Colors.transparent,
-                      ],
+                IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.center,
+                        colors: <Color>[
+                          scheme.surface.withValues(alpha: 0.8),
+                          Colors.transparent,
+                        ],
+                      ),
                     ),
                   ),
                 ),
                 // Bottom scrim: blends the photo into the content below.
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.center,
-                      end: Alignment.bottomCenter,
-                      colors: <Color>[
-                        Colors.transparent,
-                        scheme.surface.withValues(alpha: 0.9),
-                        scheme.surface,
-                      ],
-                      stops: const <double>[0, 0.75, 1],
+                IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.center,
+                        end: Alignment.bottomCenter,
+                        colors: <Color>[
+                          Colors.transparent,
+                          scheme.surface.withValues(alpha: 0.9),
+                          scheme.surface,
+                        ],
+                        stops: const <double>[0, 0.75, 1],
+                      ),
                     ),
                   ),
                 ),
@@ -357,6 +371,7 @@ class _FavoriteButton extends StatelessWidget {
             id: launch.id,
             type: FavoriteType.launch,
             title: launch.name,
+            data: launch.toJson(),
           ),
         );
         if (!ok) showFavoriteSaveError(messenger);

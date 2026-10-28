@@ -70,5 +70,22 @@ void main() {
       expect(updated.note, 'Updated note');
       expect(item.note, '');
     });
+
+    test('round-trips an optional detail snapshot', () {
+      const FavoriteItem original = FavoriteItem(
+        id: '2026-10-22',
+        type: FavoriteType.apod,
+        title: 'Saved picture',
+        data: <String, dynamic>{
+          'date': '2026-10-22',
+          'hdurl': 'https://example.test/picture.jpg',
+        },
+      );
+
+      final FavoriteItem restored = FavoriteItem.fromJson(original.toJson());
+
+      expect(restored.data, original.data);
+      expect(restored.copyWith(note: 'Remember this').data, original.data);
+    });
   });
 }

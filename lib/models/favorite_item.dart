@@ -28,18 +28,25 @@ class FavoriteItem {
     required this.type,
     required this.title,
     this.note = '',
+    this.data,
   });
 
   final String id;
   final FavoriteType type;
   final String title;
   final String note;
+  final Map<String, dynamic>? data;
 
-  FavoriteItem copyWith({String? title, String? note}) => FavoriteItem(
+  FavoriteItem copyWith({
+    String? title,
+    String? note,
+    Map<String, dynamic>? data,
+  }) => FavoriteItem(
     id: id,
     type: type,
     title: title ?? this.title,
     note: note ?? this.note,
+    data: data ?? this.data,
   );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -47,6 +54,7 @@ class FavoriteItem {
     'type': type.storageValue,
     'title': title,
     'note': note,
+    if (data != null) 'data': data,
   };
 
   factory FavoriteItem.fromJson(Map<String, dynamic> json) => FavoriteItem(
@@ -54,5 +62,8 @@ class FavoriteItem {
     type: FavoriteType.fromStorage(json['type']),
     title: readString(json['title']),
     note: readString(json['note']),
+    data: json['data'] is Map
+        ? Map<String, dynamic>.from(json['data'] as Map)
+        : null,
   );
 }

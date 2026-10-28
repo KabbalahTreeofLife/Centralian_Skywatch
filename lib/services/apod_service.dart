@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import '../models/apod.dart';
+import '../models/json_utils.dart';
 import 'api_client.dart';
 import 'api_exception.dart';
 
@@ -34,6 +37,45 @@ class ApodService {
       throw const ParseException('The APOD feed returned no entries.');
     }
 
-    return Apod.fromJson(entries.first);
+    final Map<String, dynamic> entry = entries.first;
+    if (readString(entry['media_type']) == 'video') {
+      final String? htmlUrl = readStringOrNull(entry['basic_html_url']);
+      if (htmlUrl != null) {
+        final Uri? uri = Uri.tryParse(htmlUrl);
+        if (uri != null && uri.scheme == 'https' && _isNasaHost(uri.host)) {
+          try {
+            final String html = await client.getText(uri);
+            final String? videoUrl = _videoUrlFromHtml(html, uri);
+            if (videoUrl != null) entry['video_url'] = videoUrl;
+          } on ApiException catch (error) {
+            debugPrint(
+              'Could not fetch the APOD video source: ${error.message}',
+            );
+          }
+        }
+      }
+    }
+
+    return Apod.fromJson(entry);
   }
+
+  static final RegExp _videoSource = RegExp(
+    r'''<source\b[^>]*\bsrc\s*=\s*["']([^"']+)["']''',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  static String? _videoUrlFromHtml(String html, Uri htmlUri) {
+    final String? source = _videoSource.firstMatch(html)?.group(1);
+    if (source == null) return null;
+
+    final Uri? videoUri = Uri.tryParse(source);
+    if (videoUri == null) return null;
+    final Uri resolved = htmlUri.resolveUri(videoUri);
+    if (resolved.scheme != 'https' || !_isNasaHost(resolved.host)) return null;
+    return resolved.toString();
+  }
+
+  static bool _isNasaHost(String host) =>
+      host == 'nasa.gov' || host.endsWith('.nasa.gov');
 }

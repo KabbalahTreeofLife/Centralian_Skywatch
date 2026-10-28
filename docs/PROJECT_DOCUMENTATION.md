@@ -14,15 +14,18 @@ Built for **SE2142 — Software Engineering**, Final Project.
 
 ## Features
 
-- **Today's picture** — NASA APOD title, date, explanation, and credit. Video
-  entries open as links rather than displaying a broken image.
+- **Today's picture** — NASA APOD title, date, explanation, and credit. Tap
+  the picture to open a zoomable preview. When NASA provides a direct MP4
+  source, video entries play in an in-app modal; otherwise the NASA page is
+  available as a fallback.
 - **Launch countdowns** — upcoming launches with a live `T-HH:MM:SS`
   countdown.
 - **Launch details** — agency, pad, mission type, and status.
 - **ISS tracker** — map position plus latitude, longitude, altitude, and
   velocity; refreshes every 15 seconds.
-- **Favorites** — save pictures and launches, add notes up to 200 characters,
-  and retain them across app restarts.
+- **Favorites** — save picture and launch detail snapshots, view their images,
+  open bookmarked details, add notes up to 200 characters, and retain them
+  across app restarts.
 - **Readable failure states** — offline, timeout, rate-limit, and server errors
   show a useful message and a retry option.
 
@@ -52,7 +55,7 @@ Built for **SE2142 — Software Engineering**, Final Project.
 | --- | --- |
 | Screens and navigation | Home, Launches, Launch detail, ISS, Favorites, and NotFound. Named routes pass the selected `Launch` through route arguments. |
 | State management | `provider`, with one `ChangeNotifier` per data source and a shared `LoadableProvider`/`LoadStatus` pattern. |
-| CRUD and persistence | Favorites support save, list, note updates, and removal; `shared_preferences` retains them across restarts. |
+| CRUD and persistence | Favorites support save, list, note updates, detail navigation, and removal; `shared_preferences` retains their detail snapshots across restarts. |
 | Form validation | Favorite notes cannot be empty and are limited to 200 characters. |
 | REST APIs | NASA APOD, Launch Library 2, and Where the ISS at? |
 | Shared state UI | Reusable loading, error/retry, and empty-state widgets provide consistent screen states. |
@@ -105,7 +108,8 @@ flutter test
 | `cached_network_image` | ^3.4.1 | APOD and launch images with disk cache |
 | `flutter_map` | ^8.3.2 | ISS map |
 | `latlong2` | ^0.10.1 | Map coordinates |
-| `url_launcher` | ^6.3.3 | Open APOD videos and source links |
+| `url_launcher` | ^6.3.3 | Open APOD fallback pages and source links |
+| `video_player` | ^2.14.1 | Play NASA-hosted APOD MP4 videos in-app |
 
 Development tooling also includes `flutter_lints`, `flutter_launcher_icons`,
 and `flutter_native_splash`.
