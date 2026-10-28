@@ -1,0 +1,148 @@
+name: Mobile Release
+
+run-name: Release v${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semantic version without the v prefix (for example 1.0.0)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish Android and iOS
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v5
+
+      - name: Validate release version
+        id: version
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "::error::Run this workflow from the main branch."
+            exit 1
+          fi
+
+          if [[ ! "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must be stable MAJOR.MINOR.PATCH without a v prefix or prerelease suffix."
+            exit 1
+          fi
+
+          tag="v$RELEASE_VERSION"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $tag already exists."
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "::error::Tag $tag already exists."
+            exit 1
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.9
+          channel: stable
+          cache: true
+
+      # .env is bundled as an app asset; releases must use the placeholder,
+      # never a real API key from a local or repository secret.
+      - name: Create placeholder environment file
+        run: cp .env.example .env
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Android APK
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          flutter build apk --release \
+            --build-name="$RELEASE_VERSION" \
+            --build-number="$GITHUB_RUN_NUMBER"
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            "build/CentralianSkywatch-${RELEASE_VERSION}-android.apk"
+
+      - name: Generate iOS release configuration
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          flutter build ios --config-only --release --no-codesign \
+            --build-name="$RELEASE_VERSION" \
+            --build-number="$GITHUB_RUN_NUMBER"
+
+      - name: Archive unsigned iOS app
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath build/Runner.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" 2>&1 | tee xcodebuild.log
+
+      - name: Show Xcode errors
+        if: failure()
+        run: grep -n -i -B3 -A8 "error" xcodebuild.log | head -120
+
+      - name: Package unsigned iOS IPA
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          mkdir -p build/ipa/Payload
+          cp -R build/Runner.xcarchive/Products/Applications/Runner.app \
+            build/ipa/Payload/
+          cd build/ipa
+          zip -qq -r -9 \
+            "../CentralianSkywatch-${RELEASE_VERSION}-ios.ipa" Payload
+
+      - name: Create versioned GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          notes_file="$(mktemp)"
+          trap 'rm -f "$notes_file"' EXIT
+          cat > "$notes_file" <<EOF
+          ## Centralian Skywatch $RELEASE_VERSION
+
+          This release contains Android and iOS builds.
+
+          **Signing:** The Android APK is a release-mode build signed with the
+          default debug key. The iOS IPA is unsigned. These files are not
+          store-ready; sign them with your own distribution credentials before
+          publishing through Google Play or the Apple App Store.
+
+          The IPA can be signed for personal sideloading with a compatible
+          signing tool. Do not install APKs signed with the debug key as updates
+          to builds signed with a different key.
+          EOF
+
+          gh release create "$RELEASE_TAG" \
+            "build/CentralianSkywatch-${RELEASE_VERSION}-android.apk#CentralianSkywatch-${RELEASE_VERSION}-android.apk" \
+            "build/CentralianSkywatch-${RELEASE_VERSION}-ios.ipa#CentralianSkywatch-${RELEASE_VERSION}-ios.ipa" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Centralian Skywatch $RELEASE_VERSION" \
+            --notes-file "$notes_file"
