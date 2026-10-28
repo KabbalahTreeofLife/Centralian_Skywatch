@@ -236,12 +236,24 @@ to the device and open it. The release APK was verified on an Android device:
 it installed, displayed the custom icon, and loaded Home, Launches, and ISS
 data from their APIs.
 
-### iOS IPA
+### GitHub mobile release
 
-The **iOS-ipa-build** GitHub Actions workflow builds an unsigned IPA. Run it
-from the updated `main` branch, then sign and install the downloaded IPA using
-a supported sideloading method. Install a newly built IPA to receive updated
-icons or app display names.
+Run the **Mobile Release** workflow manually from the updated `main` branch.
+Enter a stable `MAJOR.MINOR.PATCH` version, without a `v` prefix (for example,
+`1.0.0`). The workflow builds a release-mode Android APK and an unsigned iOS
+IPA, then creates a GitHub Release tagged `v<version>` with both files attached.
+It rejects prerelease version strings and refuses to overwrite an existing
+release. It does not update the `alpha` tag.
+
+The Android APK uses the debug signing key unless a release keystore is
+configured in `android/key.properties`; the workflow does not inject signing
+credentials. The IPA is unsigned. These outputs are not store-ready. Sign them
+with your own distribution credentials before publishing through Google Play
+or the Apple App Store. The unsigned IPA can be signed for personal sideloading
+with a compatible signing tool.
+
+The separate **iOS-ipa-build** workflow remains available for its existing
+alpha-test IPA process.
 
 ## Data sources and attribution
 
